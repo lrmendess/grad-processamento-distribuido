@@ -59,12 +59,12 @@ public class Decrypt {
 			saveFile(args[0] + ".msg", decrypted);
 
 		} catch (javax.crypto.BadPaddingException e) {
-//			essa excecao e jogada quando a senha esta incorreta
+//			Essa excecao e jogada quando a senha esta incorreta,
 //			porem nao quer dizer que a senha esta correta se nao jogar essa excecao
 			System.out.println("Senha invalida.");
 
 		} catch (Exception e) {
-//			dont try this at home
+//			Don't try this at home
 			e.printStackTrace();
 		}
 	}
