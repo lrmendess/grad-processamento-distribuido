@@ -6,12 +6,14 @@ package br.inf.ufes.ppd;
 
 import java.io.Serializable;
 
+@SuppressWarnings("serial")
 public class Guess implements Serializable {
+	
+//	Chave candidata
 	private String key;
-	// chave candidata
 
+//	Mensagem decriptografada com a chave candidata
 	private byte[] message;
-	// mensagem decriptografada com a chave candidata
 
 	public String getKey() {
 		return key;

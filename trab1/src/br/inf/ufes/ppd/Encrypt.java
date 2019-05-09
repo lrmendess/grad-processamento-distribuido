@@ -5,34 +5,42 @@ import javax.crypto.spec.*;
 import java.io.*;
 import java.security.*;
 
+@SuppressWarnings("unused")
 public class Encrypt {
 
 	private static byte[] readFile(String filename) throws IOException {
 		File file = new File(filename);
 		InputStream is = new FileInputStream(file);
 		long length = file.length();
-		// creates array (assumes file length<Integer.MAX_VALUE)
+		
+//		Creates array (assumes file length<Integer.MAX_VALUE)
 		byte[] data = new byte[(int) length];
+		
 		int offset = 0;
 		int count = 0;
+		
 		while ((offset < data.length) && (count = is.read(data, offset, data.length - offset)) >= 0) {
 			offset += count;
 		}
+		
 		is.close();
+		
 		return data;
 	}
 
 	private static void saveFile(String filename, byte[] data) throws IOException {
 		FileOutputStream out = new FileOutputStream(filename);
+		
 		out.write(data);
 		out.close();
 	}
 
 	public static void main(String[] args) {
-		// args[0] È a chave a ser usada
-		// args[1] È o nome do arquivo de entrada
+//		args[0]: Chave a ser usada
+//		args[1]: Nome do arquivo de entrada
 
 		try {
+			
 			byte[] key = args[0].getBytes();
 			SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
 
@@ -47,7 +55,7 @@ public class Encrypt {
 			saveFile(args[1] + ".cipher", encrypted);
 
 		} catch (Exception e) {
-			// don't try this at home
+//			Don't try this at home
 			e.printStackTrace();
 		}
 	}
