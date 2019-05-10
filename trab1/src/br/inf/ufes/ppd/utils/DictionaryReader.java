@@ -29,7 +29,6 @@ public class DictionaryReader implements AutoCloseable {
 		while (reader.ready()) {
 			if (reader.getLineNumber() < start) {
 				reader.readLine();
-				
 			} else {
 				break;
 			}
@@ -44,19 +43,12 @@ public class DictionaryReader implements AutoCloseable {
 //		Antes de resgatar o numero da linha, e necessario verificar se o reader esta disponivel
 		if (reader.ready()) {
 			return reader.getLineNumber() < end;
-			
 		} else {
 			return false;
 		}
 	}
 	
-	public String readLine() throws IOException, IndexOutOfBoundsException {
-//		Se o reader nao esta disponivel, quer dizer que nao ha mais nada para ler, logo uma posicao
-//		indevida esta sendo acessada, seja pelo fim do arquivo ou pelo limite estabelecido
-		if (!this.ready()) {
-			throw new IndexOutOfBoundsException();
-		}
-		
+	public String readLine() throws IOException {
 		return reader.readLine();
 	}
 	
