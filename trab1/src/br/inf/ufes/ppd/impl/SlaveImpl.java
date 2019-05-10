@@ -14,11 +14,15 @@ import br.inf.ufes.ppd.utils.DictionaryReader;
 
 public class SlaveImpl implements Slave {
 
+	public static void main(String[] args) {
+		System.out.println("Slave");
+	}
+	
 	@Override
 	public void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
 			int attackNumber, SlaveManager callbackInterface) throws RemoteException {
 
-		String testDictionaryPath = "../test/dictionary.txt";
+		String testDictionaryPath = "test/dictionary.txt";
 		
 		try (DictionaryReader reader = new DictionaryReader(testDictionaryPath, initialWordIndex, finalWordIndex)) {
 
@@ -50,15 +54,11 @@ public class SlaveImpl implements Slave {
 			}
 			
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-			
 		}
 	}
 
 }
-;
