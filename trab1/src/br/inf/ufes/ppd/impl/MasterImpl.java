@@ -23,11 +23,15 @@ public class MasterImpl implements Master {
 	public void addSlave(Slave slave, String slaveName, UUID slaveKey) throws RemoteException {
 		Pair<Slave, String> pair = Pair.of(slave, slaveName);
 		slaves.put(slaveKey, pair);
+		
+		System.out.println("Registered Slave: " + slaveName);
 	}
 
 	@Override
 	public void removeSlave(UUID slaveKey) throws RemoteException {
 		slaves.remove(slaveKey);
+		
+		System.out.println("Removed Slave: " + slaves.get(slaveKey).getRight());
 	}
 
 	@Override

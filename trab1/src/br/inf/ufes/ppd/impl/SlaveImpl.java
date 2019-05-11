@@ -14,8 +14,10 @@ import br.inf.ufes.ppd.utils.DictionaryReader;
 
 public class SlaveImpl implements Slave {
 
-	public static void main(String[] args) {
-		System.out.println("Slave");
+	private String name;
+	
+	public SlaveImpl(String name) {
+		this.name = name;
 	}
 	
 	@Override
@@ -40,9 +42,6 @@ public class SlaveImpl implements Slave {
 					
 					System.out.println("[" + (reader.getLineNumber() - 1) + "]" + key + ": Gotcha!!");
 					
-//					String decryptedString = new String(decrypted, StandardCharsets.UTF_8);
-//					System.out.println(decryptedString);
-					
 				} catch (BadPaddingException e) {
 					// TODO Auto-generated catch block
 					System.out.println("[" + (reader.getLineNumber() - 1) + "]" + key + ": Invalid Key!");
@@ -59,6 +58,14 @@ public class SlaveImpl implements Slave {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 }
