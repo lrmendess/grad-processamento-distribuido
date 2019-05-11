@@ -14,28 +14,37 @@ import br.inf.ufes.ppd.utils.Pair;
 
 public class MasterImpl implements Master {
 
-	private Map<UUID, Pair<Slave, String>> slaves;
+	private Map<UUID, Pair<String, Slave>> slaves;
 	private Set<UUID> busySlaves;
 	
 	public MasterImpl() {
-		slaves = new HashMap<UUID, Pair<Slave, String>>();
+		slaves = new HashMap<UUID, Pair<String, Slave>>();
 		busySlaves = new HashSet<UUID>();
 	}
 	
 	@Override
 	public synchronized void addSlave(Slave slave, String slaveName, UUID slaveKey) throws RemoteException {
-		Pair<Slave, String> pair = Pair.of(slave, slaveName);
-		slaves.put(slaveKey, pair);
+		Pair<String, Slave> slavePair = Pair.of(slaveName, slave);
 		
-		System.out.println("Registered Slave: " + slaveName);
+//		If statement de debug para poder acompanhar as inscricoes dos escravos
+//		Deve ser removido futuramente
+		if (slaves.containsKey(slaveKey)) {
+			notification(slaveKey, slaveName, "Received Heartbeat");
+			
+		} else {
+			notification(slaveKey, slaveName, "Registered");
+			slaves.put(slaveKey, slavePair);
+		}
+
 	}
 
 	@Override
 	public synchronized void removeSlave(UUID slaveKey) throws RemoteException {
-		Pair<Slave, String> removedSlavePair = slaves.remove(slaveKey);
+		Pair<String, Slave> removedSlavePair = slaves.remove(slaveKey);
 		busySlaves.remove(slaveKey);
-		
-		System.out.println("Removed Slave: " + removedSlavePair.getRight());
+
+		String slaveName = removedSlavePair.getLeft();
+		notification(slaveKey, slaveName, "Removed");
 	}
 
 	@Override
@@ -53,10 +62,12 @@ public class MasterImpl implements Master {
 
 	@Override
 	public Guess[] attack(byte[] cipherText, byte[] knownText) throws RemoteException {
-//		Solucao temporaria para caso nao exista escravos cadastrados
-		while (slaves.isEmpty());
-		
+		// TODO Auto-generated method stub
 		return null;
 	}
-
+	
+	private void notification(UUID slaveId, String slaveName, String msg) {
+		System.out.println("Slave[name=" + slaveName + "]: " + msg);
+	}
+	
 }

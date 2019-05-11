@@ -15,8 +15,10 @@ import java.util.stream.Stream;
  */
 public class DictionaryReader implements AutoCloseable {
 
-	private LineNumberReader reader;
 	private String fileName;
+	
+	private LineNumberReader reader;
+	
 	private long start;
 	private long end;
 	
@@ -27,11 +29,10 @@ public class DictionaryReader implements AutoCloseable {
 		
 //		Itera ate o index inicial
 		while (reader.ready()) {
-			if (reader.getLineNumber() < start) {
+			if (reader.getLineNumber() < start)
 				reader.readLine();
-			} else {
+			else
 				break;
-			}
 		}
 		
 		this.fileName = fileName;
@@ -41,11 +42,10 @@ public class DictionaryReader implements AutoCloseable {
 	
 	public boolean ready() throws IOException {
 //		Antes de resgatar o numero da linha, e necessario verificar se o reader esta disponivel
-		if (reader.ready()) {
+		if (reader.ready())
 			return reader.getLineNumber() < end;
-		} else {
+		else
 			return false;
-		}
 	}
 	
 	public String readLine() throws IOException {
@@ -54,9 +54,8 @@ public class DictionaryReader implements AutoCloseable {
 	
 	public String readLine(long index) throws IOException, IndexOutOfBoundsException {
 //		Verifica se o index da linha desejada encontra-se dentro do range estabelecido
-		if (index < start || index >= end) {
+		if (index < start || index >= end)
 			throw new IndexOutOfBoundsException();
-		}
 		
 		try (Stream<String> lines = Files.lines(Paths.get(fileName), StandardCharsets.UTF_8)) {
 			return lines.skip(index).findFirst().get();
