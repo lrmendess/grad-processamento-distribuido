@@ -19,7 +19,7 @@ public interface SlaveManager extends Remote {
 	 * @param slaveKey  chave para o escravo
 	 * @throws java.rmi.RemoteException
 	 */
-	public void addSlave(Slave s, String slaveName, java.util.UUID slavekey) throws java.rmi.RemoteException;
+	public void addSlave(Slave s, String slaveName, java.util.UUID slaveKey) throws java.rmi.RemoteException;
 
 	/**
 	 * Desegistra escravo no mestre.
@@ -39,7 +39,7 @@ public interface SlaveManager extends Remote {
 	 *                     decriptografada com a chave candidata
 	 * @throws java.rmi.RemoteException
 	 */
-	public void foundGuess(java.util.UUID slaveKey, int attackNumber, long currentindex, Guess currentguess)
+	public void foundGuess(java.util.UUID slaveKey, int attackNumber, long currentIndex, Guess currentGuess)
 			throws java.rmi.RemoteException;
 
 	/**

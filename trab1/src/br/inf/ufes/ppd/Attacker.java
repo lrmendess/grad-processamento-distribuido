@@ -17,5 +17,5 @@ public interface Attacker extends Remote {
 	 * @return vetor de chutes: chaves candidatas e mensagem decriptografada com
 	 *         chaves candidatas
 	 */
-	public Guess[] attack(byte[] ciphertext, byte[] knowntext) throws RemoteException;
+	public Guess[] attack(byte[] cipherText, byte[] knownText) throws RemoteException;
 }

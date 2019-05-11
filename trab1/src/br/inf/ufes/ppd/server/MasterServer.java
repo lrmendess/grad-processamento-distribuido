@@ -11,11 +11,14 @@ import java.rmi.server.UnicastRemoteObject;
 import br.inf.ufes.ppd.Master;
 import br.inf.ufes.ppd.impl.MasterImpl;
 
+/**
+ * start rmiregistry -J-Djava.rmi.server.hostname=localhost
+ */
 public class MasterServer {
 
 	public static void main(String[] args) {
 		try {
-			byte[] encryptedMessage = readFile("test/text.txt.cipher");
+			byte[] encryptedMessage = readFile(args[0]);
 			
 			Master master = new MasterImpl();
 			Master masterReference = (Master) UnicastRemoteObject.exportObject(master, 0);
@@ -26,11 +29,11 @@ public class MasterServer {
 			masterReference.attack(encryptedMessage, null);
 			
 		} catch (IOException e) {
-			System.err.println("IOException::" + e.getMessage());
+			System.err.println("MasterServer::IOException -> " + e.getMessage());
 			e.printStackTrace();
 			
 		} catch (AlreadyBoundException e) {
-			System.err.println("ServerException::" + e.getMessage());
+			System.err.println("MasterServer::ServerException -> " + e.getMessage());
 			e.printStackTrace();
 		}
 	}
