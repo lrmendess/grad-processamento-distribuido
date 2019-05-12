@@ -53,6 +53,14 @@ public class DictionaryReader implements Iterable<String> {
 	}
 	
 	/**
+	 * Remove o range estabelecido entre as linhas do arquivo
+	 */
+	public void unsetRange() {
+		start = 0;
+		end = lines.size();
+	}
+	
+	/**
 	 * Realiza a leitura da proxima linha no buffer
 	 * 
 	 * @return proxima linha do buffer
@@ -109,7 +117,7 @@ public class DictionaryReader implements Iterable<String> {
 	 * Retorna o ponteiro para a primeira linha do arquivo
 	 */
 	public void rewind() {
-		currentLineNumber = 0;
+		currentLineNumber = start;
 	}
 	
 	/**
