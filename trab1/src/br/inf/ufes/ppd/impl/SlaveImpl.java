@@ -34,8 +34,10 @@ public class SlaveImpl implements Slave {
 			int attackNumber, SlaveManager callbackInterface) throws RemoteException {
 
 //		Abertura do utilitario de leitura de dicionario com fechamento automatico
-		try (DictionaryReader reader = new DictionaryReader(dictionaryPath, initialWordIndex, finalWordIndex)) {
-
+		try {
+			DictionaryReader reader = new DictionaryReader(dictionaryPath);
+			reader.setRange((int) initialWordIndex, (int) finalWordIndex);
+			
 //			Enquanto houver alguma coisa para ler no dicionario...
 			while (reader.ready()) {
 				String key = reader.readLine();

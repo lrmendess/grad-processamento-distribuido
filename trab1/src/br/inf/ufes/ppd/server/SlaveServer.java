@@ -40,7 +40,6 @@ public class SlaveServer {
 //			O Mestre nao foi encontrado no Registry
 			e.printStackTrace();
 		}
-		
 	}
 
 }

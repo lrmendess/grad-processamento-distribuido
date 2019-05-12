@@ -1,81 +1,141 @@
 package br.inf.ufes.ppd.utils;
 
-import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.LineNumberReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.stream.Stream;
+import java.util.Iterator;
+import java.util.List;
 
-/**
- * DictionaryReader
- */
-public class DictionaryReader implements AutoCloseable {
+public class DictionaryReader implements Iterable<String> {
 
-	private String fileName;
+	private List<String> lines;
 	
-	private LineNumberReader reader;
+	private int start;
+	private int end;
+	private int currentLineNumber;
 	
-	private long start;
-	private long end;
-	
-	public DictionaryReader(String fileName, long start, long end) throws IOException, FileNotFoundException {
-		FileReader fileReader = new FileReader(fileName);
-		BufferedReader bufferedReader = new BufferedReader(fileReader);
-		reader = new LineNumberReader(bufferedReader);
+	/**
+	 * Utilitario de leitura do dicionario
+	 * 
+	 * @param caminho do arquivo
+	 * @throws IOException
+	 */
+	public DictionaryReader(String filePath) throws IOException, FileNotFoundException {
+		File file = new File(filePath);
 		
-//		Itera ate o index inicial
-		while (reader.ready()) {
-			if (reader.getLineNumber() < start)
-				reader.readLine();
-			else
-				break;
+		if (!file.exists()) {
+			throw new FileNotFoundException();
 		}
 		
-		this.fileName = fileName;
+		/* ArrayList<String> */
+		lines = Files.readAllLines(file.toPath());
+		
+		start = 0;
+		end = lines.size();
+		
+		currentLineNumber = 0;
+	}
+	
+	/**
+	 * Estabelece um range de leitura entre as linhas do arquivo
+	 * 
+	 * @param index de inicio
+	 * @param index de fim
+	 * @throws IndexOutOfBoundsException
+	 */
+	public void setRange(int start, int end) throws IndexOutOfBoundsException {
+		if ((start < 0) || (end > lines.size()))
+			throw new IndexOutOfBoundsException();
+		
 		this.start = start;
 		this.end = end;
 	}
 	
-	public boolean ready() throws IOException {
-//		Antes de resgatar o numero da linha, e necessario verificar se o reader esta disponivel
-		if (reader.ready())
-			return reader.getLineNumber() < end;
-		else
-			return false;
+	/**
+	 * Realiza a leitura da proxima linha no buffer
+	 * 
+	 * @return proxima linha do buffer
+	 */
+	public String readLine() {
+		String line = lines.get(currentLineNumber);
+		currentLineNumber++;
+		
+		return line;
 	}
 	
-	public String readLine() throws IOException {
-		return reader.readLine();
-	}
-	
-	public String readLine(long index) throws IOException, IndexOutOfBoundsException {
-//		Verifica se o index da linha desejada encontra-se dentro do range estabelecido
-		if (index < start || index >= end)
+	/**
+	 * Realiza a leitura de uma linha especifica
+	 * 
+	 * @param index da linha desejada
+	 * @return linha desejada
+	 * @throws IndexOutOfBoundsException
+	 */
+	public String readLine(int index) throws IndexOutOfBoundsException {
+		if ((index < start) || (index >= end))
 			throw new IndexOutOfBoundsException();
 		
-		try (Stream<String> lines = Files.lines(Paths.get(fileName), StandardCharsets.UTF_8)) {
-			return lines.skip(index).findFirst().get();
-		}
+		return lines.get(index);
 	}
 	
-	public long getLineNumber() {
-		return reader.getLineNumber();
+	/**
+	 * Verifica se ainda existe linhas para serem lidas
+	 * 
+	 * @return pode ler a proxima linha ou nao
+	 */
+	public boolean ready() {
+		return (currentLineNumber >= start) && (currentLineNumber < end);
+	}
+	
+	/**
+	 * Contabiliza todas as linhas dentro do range estabelecido, de start ate end
+	 * 
+	 * @return numero total de linhas range estabelicido
+	 */
+	public int countLines() {
+		return end - start;
+	}
+	
+	/**
+	 * Contabiliza todas as linhas do arquivo original, do primeiro ao ultimo byte
+	 * 
+	 * @return numero total de linhas no arquivo original
+	 */
+	public int countAllLines() {
+		return lines.size();
+	}
+	
+	/**
+	 * Retorna o ponteiro para a primeira linha do arquivo
+	 */
+	public void rewind() {
+		currentLineNumber = 0;
+	}
+	
+	/**
+	 * Retorna a linha a qual o ponteiro se encontra
+	 * 
+	 * @return linha do ponteiro
+	 */
+	public int getLineNumber() {
+		return currentLineNumber;
 	}
 
 	@Override
-	public void close() throws IOException  {
-		reader.close();
+	public Iterator<String> iterator() {
+		return new Iterator<String>() {
+
+			@Override
+			public boolean hasNext() {
+				return ready();
+			}
+
+			@Override
+			public String next() {
+				return readLine();
+			}
+			
+		};
 	}
-	
-	public long countLines() throws IOException {
-//		Conta a quantidade total de linhas de um arquivo (incluindo linhas em branco)
-		try (Stream<String> lines = Files.lines(Paths.get(fileName), StandardCharsets.UTF_8)) {
-			return lines.count();
-		}
-	}
-	
+
 }
