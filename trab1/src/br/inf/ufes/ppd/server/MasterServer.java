@@ -10,7 +10,7 @@ import br.inf.ufes.ppd.Master;
 import br.inf.ufes.ppd.impl.MasterImpl;
 
 /*
- * Comando para rodar executar o Registry no Windows
+ * Comando para executar o Registry no Windows
  * 
  * rmiregistry -J-Djava.rmi.server.hostname=localhost
  */

@@ -20,19 +20,23 @@ import br.inf.ufes.ppd.utils.DictionaryReader;
 public class SlaveImpl implements Slave {
 
 	private final UUID id;
+	private final String name;
 	private final String dictionaryPath;
 
-	public SlaveImpl(UUID id, String dictionaryPath) {
+	public SlaveImpl(UUID id, String name, String dictionaryPath) {
 		this.id = id;
+		this.name = name;
 		this.dictionaryPath = dictionaryPath;
 	}
-
+	
 	@Override
 	public void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
 			int attackNumber, SlaveManager callbackInterface) throws RemoteException {
 
+//		Abertura do utilitario de leitura de dicionario com fechamento automatico
 		try (DictionaryReader reader = new DictionaryReader(dictionaryPath, initialWordIndex, finalWordIndex)) {
 
+//			Enquanto houver alguma coisa para ler no dicionario...
 			while (reader.ready()) {
 				String key = reader.readLine();
 
@@ -45,20 +49,19 @@ public class SlaveImpl implements Slave {
 					@SuppressWarnings("unused")
 					byte[] decrypted = cipher.doFinal(cipherText);
 
-					resultNotification(reader.getLineNumber() - 1, key, "Gotcha!!");
+					notification("[" + (reader.getLineNumber() - 1) + "]" + key + ": " + "Gotcha!!");
 
 				} catch (BadPaddingException e) {
 //					Chave errada
-					resultNotification(reader.getLineNumber() - 1, key, "Invalid Key");
+					notification("[" + (reader.getLineNumber() - 1) + "]" + key + ": " + "Invalid Key");
 
 				} catch (InvalidKeyException | IllegalBlockSizeException e) {
 //					Chave mal formatada
 					e.printStackTrace();
-					
+
 				} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
 //					Se rolarem essas excecoes, a Terra ja estara colidindo com o Sol
 					e.printStackTrace();
-					
 				}
 			}
 
@@ -67,18 +70,14 @@ public class SlaveImpl implements Slave {
 			e.printStackTrace();
 
 		} catch (IOException e) {
+//			Houve alguma falha na leitura
 			e.printStackTrace();
 		}
 	}
-
-	public UUID getId() {
-		return id;
+	
+//	Funcao de debug (deve se removida futuramente)
+	private void notification(String msg) {
+		System.out.println("Slave[name=" + name + ", id=" + id + "]: " + msg);
 	}
 	
-//	Funcao de debug para poder acompanhar os resultados dos escravos
-//	Deve ser removido futuramente
-	public void resultNotification(long lineNumber, String key, String msg) {
-		System.out.println("[" + lineNumber + "]" + key + ": " + msg);
-	}
-
 }

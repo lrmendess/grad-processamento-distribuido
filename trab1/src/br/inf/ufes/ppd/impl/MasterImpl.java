@@ -1,6 +1,7 @@
 package br.inf.ufes.ppd.impl;
 
 import java.rmi.RemoteException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -18,7 +19,7 @@ public class MasterImpl implements Master {
 	private Set<UUID> busySlaves;
 	
 	public MasterImpl() {
-		slaves = new HashMap<UUID, Pair<String, Slave>>();
+		slaves = Collections.synchronizedMap(new HashMap<UUID, Pair<String, Slave>>());
 		busySlaves = new HashSet<UUID>();
 	}
 	
@@ -29,7 +30,7 @@ public class MasterImpl implements Master {
 //		If statement de debug para poder acompanhar as inscricoes dos escravos
 //		Deve ser removido futuramente
 		if (slaves.containsKey(slaveKey)) {
-			notification(slaveKey, slaveName, "Received Heartbeat");
+			notification(slaveKey, slaveName, "Heartbeat Received");
 			
 		} else {
 			notification(slaveKey, slaveName, "Registered");
@@ -66,6 +67,7 @@ public class MasterImpl implements Master {
 		return null;
 	}
 	
+//	Funcao de debug (deve se removida futuramente)
 	private void notification(UUID slaveId, String slaveName, String msg) {
 		System.out.println("Slave[name=" + slaveName + "]: " + msg);
 	}

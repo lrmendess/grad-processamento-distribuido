@@ -36,11 +36,11 @@ public class Client {
 			master.attack(encryptedMessage, args[1].getBytes());
 			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+//			Houve uma falha na leitura do arquivo
 			e.printStackTrace();
 			
 		} catch (NotBoundException e) {
-			// TODO Auto-generated catch block
+//			O Mestre nao foi encontrado no Registry
 			e.printStackTrace();
 		}
 
