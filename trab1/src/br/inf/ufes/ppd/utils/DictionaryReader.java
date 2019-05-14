@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -84,6 +85,26 @@ public class DictionaryReader implements Iterable<String> {
 			throw new IndexOutOfBoundsException();
 		
 		return lines.get(index);
+	}
+	
+	/**
+	 * Realiza a leitura de um numero de linhas dado um range
+	 * 
+	 * @param tamanho do buffer
+	 * @return lista das linhas dentro do range especificado
+	 */
+	public List<String> readLines(int buffer) {
+		List<String> linesRead = new ArrayList<String>();
+		
+		for (int i = 0; i < buffer; i++) {
+			if (ready()) {
+				linesRead.add(readLine());
+			} else {
+				break;
+			}
+		}
+		
+		return linesRead;
 	}
 	
 	/**

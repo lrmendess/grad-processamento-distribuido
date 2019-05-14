@@ -1,6 +1,5 @@
 package br.inf.ufes.ppd.server;
 
-import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -18,21 +17,17 @@ public class MasterServer {
 
 	public static void main(String[] args) {
 		try {
-			MasterImpl master = new MasterImpl();
+			MasterImpl master = new MasterImpl(args[0]);
 			Master masterReference = (Master) UnicastRemoteObject.exportObject(master, 0);
 			
 			Registry registry = LocateRegistry.getRegistry("localhost");
-			registry.bind("mestre", masterReference);
+			registry.rebind("mestre", masterReference);
 			
 		} catch (RemoteException e) {
 //			Houve uma falha na exportacao do objeto ou na obtencao do registry
 			e.printStackTrace();
 			
-		} catch (AlreadyBoundException e) {
-//			Ja existe um objeto remote de nome "mestre"
-			e.printStackTrace();
 		}
-
 	}
 
 }

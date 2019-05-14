@@ -18,11 +18,10 @@ public class SlaveAssistant implements Runnable {
 	private Master remoteMaster;
 	private Registry registry;
 
-	public SlaveAssistant(Slave remoteSlave, UUID slaveId, String slaveName, Master remoteMaster, Registry registry) {
+	public SlaveAssistant(Slave remoteSlave, UUID slaveId, String slaveName, Registry registry) {
 		this.remoteSlave = remoteSlave;
 		this.slaveId = slaveId;
 		this.slaveName = slaveName;
-		this.remoteMaster = remoteMaster;
 		this.registry = registry;
 	}
 

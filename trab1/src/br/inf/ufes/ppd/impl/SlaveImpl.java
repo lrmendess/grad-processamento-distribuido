@@ -21,12 +21,22 @@ public class SlaveImpl implements Slave {
 
 	private final UUID id;
 	private final String name;
-	private final String dictionaryPath;
+	
+	private DictionaryReader dictionary;
 
 	public SlaveImpl(UUID id, String name, String dictionaryPath) {
 		this.id = id;
 		this.name = name;
-		this.dictionaryPath = dictionaryPath;
+		
+		try {
+			this.dictionary = new DictionaryReader(dictionaryPath);
+		
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -34,46 +44,35 @@ public class SlaveImpl implements Slave {
 			int attackNumber, SlaveManager callbackInterface) throws RemoteException {
 
 //		Abertura do utilitario de leitura de dicionario com fechamento automatico
-		try {
-			DictionaryReader reader = new DictionaryReader(dictionaryPath);
-			reader.setRange((int) initialWordIndex, (int) finalWordIndex);
-			
-//			Enquanto houver alguma coisa para ler no dicionario...
-			while (reader.ready()) {
-				String key = reader.readLine();
+		dictionary.setRange((int) initialWordIndex, (int) finalWordIndex);
+		
+//		Enquanto houver alguma coisa para ler no dicionario...
+		while (dictionary.ready()) {
+			String key = dictionary.readLine();
 
-				SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), "Blowfish");
+			SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), "Blowfish");
 
-				try {
-					Cipher cipher = Cipher.getInstance("Blowfish");
-					cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
+			try {
+				Cipher cipher = Cipher.getInstance("Blowfish");
+				cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
 
-					@SuppressWarnings("unused")
-					byte[] decrypted = cipher.doFinal(cipherText);
+				@SuppressWarnings("unused")
+				byte[] decrypted = cipher.doFinal(cipherText);
 
-					notification("[" + (reader.getLineNumber() - 1) + "]" + key + ": " + "Gotcha!!");
+				notification("[" + (dictionary.getLineNumber() - 1) + "]" + key + ": " + "Gotcha!!");
 
-				} catch (BadPaddingException e) {
-//					Chave errada
-					notification("[" + (reader.getLineNumber() - 1) + "]" + key + ": " + "Invalid Key");
+			} catch (BadPaddingException e) {
+//				Chave errada
+				notification("[" + (dictionary.getLineNumber() - 1) + "]" + key + ": " + "Invalid Key");
 
-				} catch (InvalidKeyException | IllegalBlockSizeException e) {
-//					Chave mal formatada
-					e.printStackTrace();
+			} catch (InvalidKeyException | IllegalBlockSizeException e) {
+//				Chave mal formatada
+				e.printStackTrace();
 
-				} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-//					Se rolarem essas excecoes, a Terra ja estara colidindo com o Sol
-					e.printStackTrace();
-				}
+			} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+//				Se rolarem essas excecoes, a Terra ja estara colidindo com o Sol
+				e.printStackTrace();
 			}
-
-		} catch (FileNotFoundException e) {
-//			O dicionario nao foi encontrado localmente
-			e.printStackTrace();
-
-		} catch (IOException e) {
-//			Houve alguma falha na leitura
-			e.printStackTrace();
 		}
 	}
 	
