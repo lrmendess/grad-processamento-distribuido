@@ -1,4 +1,4 @@
-package br.inf.ufes.ppd.server;
+package br.inf.ufes.ppd.master;
 
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -6,7 +6,6 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 import br.inf.ufes.ppd.Master;
-import br.inf.ufes.ppd.impl.MasterImpl;
 
 /*
  * Comando para executar o Registry no Windows

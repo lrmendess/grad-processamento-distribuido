@@ -1,4 +1,4 @@
-package br.inf.ufes.ppd.assistant;
+package br.inf.ufes.ppd.slave;
 
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -11,17 +11,16 @@ import br.inf.ufes.ppd.Slave;
 public class SlaveHeartbeatAssistant implements Runnable {
 
 	private Slave remoteSlave;
-
-	private UUID slaveId;
 	private String slaveName;
+	private UUID slaveKey;
 	
 	private Master remoteMaster;
 	private Registry registry;
 
-	public SlaveHeartbeatAssistant(Slave remoteSlave, UUID slaveId, String slaveName, Registry registry) {
+	public SlaveHeartbeatAssistant(Slave remoteSlave, String slaveName, UUID slaveKey, Registry registry) {
 		this.remoteSlave = remoteSlave;
-		this.slaveId = slaveId;
 		this.slaveName = slaveName;
+		this.slaveKey = slaveKey;
 		this.registry = registry;
 	}
 
@@ -33,7 +32,7 @@ public class SlaveHeartbeatAssistant implements Runnable {
 
 		while (true) {
 			try {
-				remoteMaster.addSlave(remoteSlave, slaveName, slaveId);
+				remoteMaster.addSlave(remoteSlave, slaveName, slaveKey);
 				Thread.sleep(30000);
 				notification("Heartbeat Sent");
 
