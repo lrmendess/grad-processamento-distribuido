@@ -7,7 +7,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.UUID;
 
 import br.inf.ufes.ppd.Slave;
-import br.inf.ufes.ppd.assistant.SlaveAssistant;
+import br.inf.ufes.ppd.assistant.SlaveHeartbeatAssistant;
 import br.inf.ufes.ppd.impl.SlaveImpl;
 
 public class SlaveServer {
@@ -24,7 +24,7 @@ public class SlaveServer {
 			
 			Registry registry = LocateRegistry.getRegistry("localhost");
 			
-			SlaveAssistant slaveAssistant = new SlaveAssistant(remoteSlave, slaveId, slaveName, registry);
+			SlaveHeartbeatAssistant slaveAssistant = new SlaveHeartbeatAssistant(remoteSlave, slaveId, slaveName, registry);
 			
 			Thread slaveMonitorThread = new Thread(slaveAssistant);
 			slaveMonitorThread.start();

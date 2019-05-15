@@ -8,6 +8,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * 
+ * @author Lucas Ribeiro Mendes Silva
+ *
+ */
 public class DictionaryReader implements Iterable<String> {
 
 	private List<String> lines;
@@ -105,6 +110,26 @@ public class DictionaryReader implements Iterable<String> {
 		}
 		
 		return linesRead;
+	}
+	
+	/**
+	 * Avanca o ponteiro dado um intervalo, nunca sai do intervalo estabelecido
+	 * 
+	 * @param tamanho do salto do ponteiro
+	 * @throws IndexOutOfBoundsException
+	 */
+	public void seek(int buffer) {
+		int pointer = currentLineNumber + buffer;
+		
+		if ((pointer >= start) && (pointer < end)) {
+			currentLineNumber = pointer;
+		} else {
+			if (pointer < start) {
+				currentLineNumber = start;
+			} else {
+				currentLineNumber = end;
+			}
+		}
 	}
 	
 	/**

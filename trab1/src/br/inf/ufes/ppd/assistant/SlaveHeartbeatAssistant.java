@@ -8,7 +8,7 @@ import java.util.UUID;
 import br.inf.ufes.ppd.Master;
 import br.inf.ufes.ppd.Slave;
 
-public class SlaveAssistant implements Runnable {
+public class SlaveHeartbeatAssistant implements Runnable {
 
 	private Slave remoteSlave;
 
@@ -18,7 +18,7 @@ public class SlaveAssistant implements Runnable {
 	private Master remoteMaster;
 	private Registry registry;
 
-	public SlaveAssistant(Slave remoteSlave, UUID slaveId, String slaveName, Registry registry) {
+	public SlaveHeartbeatAssistant(Slave remoteSlave, UUID slaveId, String slaveName, Registry registry) {
 		this.remoteSlave = remoteSlave;
 		this.slaveId = slaveId;
 		this.slaveName = slaveName;

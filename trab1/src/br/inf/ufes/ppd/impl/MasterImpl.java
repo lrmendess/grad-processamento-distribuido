@@ -15,21 +15,26 @@ import br.inf.ufes.ppd.Master;
 import br.inf.ufes.ppd.Slave;
 import br.inf.ufes.ppd.utils.DictionaryReader;
 import br.inf.ufes.ppd.utils.Pair;
+import br.inf.ufes.ppd.utils.Partition;
 
 public class MasterImpl implements Master {
 	
 //	Dictionary
 	private DictionaryReader dictionary;
-//	List<Particao do dicionario>
-	private List<Pair<Integer, Integer>> partitions;
 //	Map<ID do Escravo, Pair<Nome do Escravo, Referencia do Escravo>>
 	private Map<UUID, Pair<String, Slave>> slaves;
+//	Numero de ataques
+	private int attacks;
+//	Map<Numero do ataque, Particao de leitura no dicionario>
+	private Map<Integer, List<Partition>> attacksAndPartitions;
 
 	public MasterImpl(String dictionaryPath) {
 		try {
 			dictionary = new DictionaryReader(dictionaryPath);
-			partitions = Collections.synchronizedList(new ArrayList<Pair<Integer, Integer>>());
 			slaves = Collections.synchronizedMap(new HashMap<UUID, Pair<String, Slave>>());
+			
+			attacks = 0;
+			attacksAndPartitions = Collections.synchronizedMap(new HashMap<Integer, List<Partition>>());
 			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -83,30 +88,34 @@ public class MasterImpl implements Master {
 
 	@Override
 	public Guess[] attack(byte[] cipherText, byte[] knownText) throws RemoteException {
-		int dictionaryLength = dictionary.countAllLines();
-		int numberOfSlaves = slaves.size();
-		int partitionLength = dictionaryLength / numberOfSlaves;
-		
-		/* Fefo's algorithm */ 
-		for (int i = 0; i < (numberOfSlaves - 1); i++) {
-			Pair<Integer, Integer> pair = Pair.of(i * partitionLength, i * partitionLength + partitionLength);
-			partitions.add(pair);
-		}
-		
-		Pair<Integer, Integer> pair = Pair.of((numberOfSlaves - 1) * partitionLength, dictionaryLength);
-		partitions.add(pair);
-		
-//		while (dictionary.ready()) {
-//			int startIndex = dictionary.getLineNumber();
-//			dictionary.readLines(partitionLength);
-//			int endIndex = dictionary.getLineNumber();
-//			
-//			partitions.add(Pair.of(startIndex, endIndex));
-//		}
-		
-		partitions.forEach(System.out::println);
+//		Cria uma lista de particoes do dicionario para um ataque
+		attacksAndPartitions.put(attacks++, partitionDictionary());
 		
 		return null;
+	}
+	
+	private List<Partition> partitionDictionary() {
+		List<Partition> partitions = new ArrayList<Partition>();
+		
+		int partitionLength = dictionary.countAllLines() / slaves.size();
+		int partitionLeftovers = dictionary.countAllLines() % slaves.size();
+		
+		while (dictionary.ready()) {
+			int min = dictionary.getLineNumber();
+
+			if (partitionLeftovers > 0) {
+				dictionary.seek(partitionLength + 1);
+				partitionLeftovers--;
+			} else {
+				dictionary.seek(partitionLength);
+			}
+			
+			int max = dictionary.getLineNumber();
+			
+			partitions.add(new Partition(min, max));
+		}
+		
+		return partitions;
 	}
 	
 //	Funcao de debug (deve se removida futuramente)
