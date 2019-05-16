@@ -66,6 +66,8 @@ public class SlaveImpl implements Slave {
 
 				byte[] decrypted = cipher.doFinal(cipherText);
 
+				notification("[" + dictionary.getLineNumber() + ", " + key + "]: Gotcha!!");
+				
 				Guess guess = new Guess();
 				guess.setKey(key);
 				guess.setMessage(decrypted);
@@ -76,9 +78,9 @@ public class SlaveImpl implements Slave {
 				if (decryptedStr.contains(knownTextStr)) {
 					callbackInterface.foundGuess(id, attackNumber, dictionary.getLineNumber() - 1, guess);
 				}
-				
 			} catch (BadPaddingException e) {
 //				Chave errada
+				notification("[" + dictionary.getLineNumber() + ", " + key + "]: Invalid Key");
 				continue;
 			} catch (InvalidKeyException | IllegalBlockSizeException e) {
 //				Chave mal formatada

@@ -1,8 +1,10 @@
 package br.inf.ufes.ppd.slave;
 
+import java.rmi.RemoteException;
 import java.util.UUID;
 
 import br.inf.ufes.ppd.Slave;
+import br.inf.ufes.ppd.SlaveManager;
 import br.inf.ufes.ppd.utils.Partition;
 
 public class SlaveWorker implements Runnable {
@@ -10,9 +12,14 @@ public class SlaveWorker implements Runnable {
 	private Slave slave;
 	private String name;
 	private UUID key;
-	
+
 	private Partition partition;
-	
+
+	private byte[] cipherText;
+	private byte[] knownText;
+	private int attackNumber;
+	private SlaveManager callbackInterface;
+
 	public SlaveWorker(Slave slave, String name, UUID key) {
 		this.name = name;
 		this.key = key;
@@ -52,10 +59,23 @@ public class SlaveWorker implements Runnable {
 		this.partition = partition;
 	}
 
+	public void setSubAttackParameters(byte[] cipherText, byte[] knownText, int attackNumber,
+			SlaveManager callbackInterface) {
+		this.cipherText = cipherText;
+		this.knownText = knownText;
+		this.attackNumber = attackNumber;
+		this.callbackInterface = callbackInterface;
+	}
+
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
-		
+		try {
+			slave.startSubAttack(cipherText, knownText, partition.getMin(), partition.getMax(), attackNumber,
+					callbackInterface);
+
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

@@ -6,9 +6,12 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import br.inf.ufes.ppd.Guess;
 import br.inf.ufes.ppd.Master;
@@ -20,16 +23,15 @@ import br.inf.ufes.ppd.utils.Sequence;
 
 public class MasterImpl implements Master {
 	
-//	Folga de tempo
 	private static final long ALPHA = 500;
-//	Dicionario
 	private DictionaryReader dictionary;
 //	Map<ID do Escravo, Escravo>
 	private Map<UUID, SlaveWorker> slaves;
+	private List<Thread> workingSlavesThreads;
 //	Map<Numero do ataque, Particao de leitura no dicionario>
 	private Map<Integer, List<Partition>> attacksAndPartitions;
 //	Map<Numero do ataque, Colecao de Chutes>
-	private Map<Integer, List<Guess>> guesses;
+	private Map<Integer, List<Guess>> attacksAndGuesses;
 //	Map<ID do Escravo, Tempo da ultima resposta>
 	private Map<UUID, Long> slavesTimer;
 	
@@ -38,8 +40,9 @@ public class MasterImpl implements Master {
 			dictionary = new DictionaryReader(dictionaryPath);
 			slaves = Collections.synchronizedMap(new HashMap<UUID, SlaveWorker>());
 			attacksAndPartitions = Collections.synchronizedMap(new HashMap<Integer, List<Partition>>());
-			guesses = Collections.synchronizedMap(new HashMap<Integer, List<Guess>>());
+			attacksAndGuesses = Collections.synchronizedMap(new HashMap<Integer, List<Guess>>());
 			slavesTimer = Collections.synchronizedMap(new HashMap<UUID, Long>());
+			workingSlavesThreads = Collections.synchronizedList(new ArrayList<Thread>());
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -77,16 +80,21 @@ public class MasterImpl implements Master {
 	public synchronized void foundGuess(UUID slaveKey, int attackNumber, long currentIndex, Guess currentGuess)
 			throws RemoteException {
 //		Esse metodo ainda esta meio nebuloso
-		List<Guess> attackGuesses = guesses.get(attackNumber);
-		attackGuesses.add(currentGuess);
-		
-		notification(slaves.get(slaveKey).getName(), "Guess received");
+//		if (attacksAndGuesses.containsKey(attackNumber)) {
+//			attacksAndGuesses.put(attackNumber, new ArrayList<Guess>());
+//		}
+//		List<Guess> attackGuesses = attacksAndGuesses.get(attackNumber);
+//		
+//		attackGuesses.add(currentGuess);
+//		notification(slaves.get(slaveKey).getName(), "Guess received");
 	}
 
 	@Override
 	public void checkpoint(UUID slaveKey, int attackNumber, long currentIndex) throws RemoteException {
 //		Evita que Threads remanescentes insiram valores que nao existem mais
-		if (!slaves.containsKey(slaveKey)) return;
+		if (slaves.containsKey(slaveKey) == false) {
+			return;
+		}
 		
 //		Debug
 		notification(slaves.get(slaveKey).getName(), "Checkpoint received");
@@ -115,11 +123,27 @@ public class MasterImpl implements Master {
 	public Guess[] attack(byte[] cipherText, byte[] knownText) throws RemoteException {
 //		Adiciona um numero de ataque e as particoes a serem exploradas
 		int attackNumber = Sequence.nextValue();
+		List<Partition> partitions = partitionDictionary();
 		attacksAndPartitions.put(attackNumber, partitionDictionary());
 		
-		slaves.forEach((uuid, sw) -> {
-			
-		});
+		Iterator<Partition> partitionsForSlaves = attacksAndPartitions.get(attackNumber).iterator();
+		
+		for (Entry<UUID, SlaveWorker> entry : slaves.entrySet()) {
+			SlaveWorker sw = entry.getValue();
+			sw.setPartition(partitionsForSlaves.next());
+			sw.setSubAttackParameters(cipherText, knownText, attackNumber, this);
+			Thread t = new Thread(sw);
+			workingSlavesThreads.add(t);
+			t.start();
+		}
+		
+		for (Thread t : workingSlavesThreads) {
+			try {
+				t.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		return null;
 	}
