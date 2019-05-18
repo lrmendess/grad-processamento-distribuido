@@ -26,8 +26,10 @@ public class SlaveHeartbeatAssistant implements Runnable {
 
 	@Override
 	public void run() {
+//		Fica aguardando o mestre estar disponivel
 		notification("Looking for a Master reference...");
-		searchMaster();
+		searchMaster(true);
+		
 		notification("Master reference found");
 
 		while (true) {
@@ -39,8 +41,9 @@ public class SlaveHeartbeatAssistant implements Runnable {
 			} catch (RemoteException e) {
 //				Houve algo de errado com o mestre quando o escravo tentou se "re-registrar",
 //				sera feita uma tentativa de busca de uma nova referencia para ele no registry
+//				uma unica vez
 				notification("Looking for a new Master reference...");
-				searchMaster();
+				searchMaster(false);
 
 			} catch (InterruptedException e) {
 //				Exception de Thread.sleep
@@ -49,8 +52,13 @@ public class SlaveHeartbeatAssistant implements Runnable {
 		}
 	}
 
-	private void searchMaster() {
-		while (true) {
+	/**
+	 * Procura pelo mestre
+	 * 
+	 * @param true para buscar o mestre indeterminadamente, false para buscar apenas uma vez
+	 */
+	private void searchMaster(boolean persist) {
+		do {
 			try {
 				remoteMaster = (Master) registry.lookup("mestre");
 				break;
@@ -63,7 +71,7 @@ public class SlaveHeartbeatAssistant implements Runnable {
 //				O Registry apresentou problemas, o que deve ser feito? (Duvida)
 				e.printStackTrace();
 			}
-		}
+		} while (persist);
 	}
 
 //	Funcao de debug (deve se removida futuramente)

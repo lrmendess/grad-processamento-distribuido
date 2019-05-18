@@ -34,9 +34,10 @@ public class SlaveCheckpointAssistant implements Runnable {
 		try {
 			notification("Partitions done!");
 //			Acresce UM no ultimo index para que ele saia da borda da particao e o Master
-//			perceba que o escravo terminou de testa-la
-			callbackInterface.checkpoint(slaveId, attackNumber, currentIndex + 1);
-			
+//			perceba que o escravo terminou de testa-la.
+			synchronized (callbackInterface) {
+				callbackInterface.checkpoint(slaveId, attackNumber, currentIndex + 1);
+			}
 		} catch (RemoteException e) {
 //			TODO Auto-generated catch block
 			e.printStackTrace();
@@ -45,16 +46,18 @@ public class SlaveCheckpointAssistant implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while (workFinished == false) {
 			try {
 				Thread.sleep(10000);
-//				Caso o escravo diga que o terminou, a Thread para
-//				Caso haja concorrencia, ele ira verificar se o ultimo indice de leitura foi o final
-				if (workFinished) {
-					break;
+				synchronized (callbackInterface) {
+//					Caso o escravo diga que o terminou, a Thread para
+					if (workFinished) {
+						break;
+					}
+//					Envia o checkpoint para o mestre via interface SlaveManager
+					notification("Checkpoint sent");
+					callbackInterface.checkpoint(slaveId, attackNumber, currentIndex);
 				}
-				notification("Checkpoint sent");
-				callbackInterface.checkpoint(slaveId, attackNumber, currentIndex);
 			} catch (InterruptedException e) {
 //				Falha na thread
 				e.printStackTrace();

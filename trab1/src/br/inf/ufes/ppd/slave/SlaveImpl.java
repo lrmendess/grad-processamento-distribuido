@@ -82,8 +82,8 @@ public class SlaveImpl implements Slave {
 				checkPointAssistant.setCurrentIndex(dictionary.getLineNumber() - 1);
 			} catch (BadPaddingException e) {
 //				Chave errada, so atualiza o index
-				checkPointAssistant.setCurrentIndex(dictionary.getLineNumber() - 1);
 //				notification("[" + dictionary.getLineNumber() + ", " + key + "]: Invalid Key");
+				checkPointAssistant.setCurrentIndex(dictionary.getLineNumber() - 1);
 			} catch (InvalidKeyException | IllegalBlockSizeException e) {
 //				Chave mal formatada ou .cipher nao multiplo de 8
 				e.printStackTrace();
