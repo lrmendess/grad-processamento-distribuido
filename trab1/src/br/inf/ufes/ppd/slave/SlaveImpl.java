@@ -78,10 +78,12 @@ public class SlaveImpl implements Slave {
 				if (decryptedStr.contains(knownTextStr)) {
 					callbackInterface.foundGuess(id, attackNumber, dictionary.getLineNumber() - 1, guess);
 				}
+				
+				checkPointAssistant.setCurrentIndex(dictionary.getLineNumber() - 1);
 			} catch (BadPaddingException e) {
-//				Chave errada
+//				Chave errada, so atualiza o index
+				checkPointAssistant.setCurrentIndex(dictionary.getLineNumber() - 1);
 //				notification("[" + dictionary.getLineNumber() + ", " + key + "]: Invalid Key");
-				continue;
 			} catch (InvalidKeyException | IllegalBlockSizeException e) {
 //				Chave mal formatada ou .cipher nao multiplo de 8
 				e.printStackTrace();
@@ -89,8 +91,6 @@ public class SlaveImpl implements Slave {
 //				Se rolarem essas excecoes, a Terra ja estara colidindo com o Sol
 				e.printStackTrace();
 			}
-
-			checkPointAssistant.setCurrentIndex(dictionary.getLineNumber() - 1);
 		}
 		
 		checkPointAssistant.workFinished();

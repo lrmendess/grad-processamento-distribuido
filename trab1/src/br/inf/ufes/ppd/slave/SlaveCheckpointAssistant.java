@@ -36,7 +36,7 @@ public class SlaveCheckpointAssistant implements Runnable {
 //			Acresce UM no ultimo index para que ele saia da borda da particao e o Master
 //			perceba que o escravo terminou de testa-la
 			callbackInterface.checkpoint(slaveId, attackNumber, currentIndex + 1);
-
+			
 		} catch (RemoteException e) {
 //			TODO Auto-generated catch block
 			e.printStackTrace();

@@ -46,6 +46,7 @@ public class SlaveRunnable implements Runnable {
 					callbackInterface);
 
 		} catch (RemoteException e) {
+//			Houveram problemas com o escravo, logo a particao dele deve ser realocada
 			e.printStackTrace();
 		}
 	}

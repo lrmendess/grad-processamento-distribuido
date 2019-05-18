@@ -85,15 +85,12 @@ public class MasterImpl implements Master {
 			notification(namedSlave.getName(), "Checkpoint received");
 		}
 		
-		Map<UUID, Partition> attackSlavesPartitions = null;
-		synchronized (slavesPartitions) {
-			attackSlavesPartitions = slavesPartitions.get(attackNumber);
-		}
+		Map<UUID, Partition> attackSlavesPartitions = slavesPartitions.get(attackNumber);
 		
 		synchronized (attackSlavesPartitions) {
 			synchronized (attacksPartitions) {
 				Partition partition = attackSlavesPartitions.get(slaveKey);
-
+				
 				if (currentIndex == partition.getMax()) {
 //					Terminou a particao
 //					Remover a particao em que o escravo de UUID "slaveKey" estava trabalhando
