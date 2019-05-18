@@ -85,10 +85,9 @@ public class MasterImpl implements Master {
 			notification(namedSlave.getName(), "Checkpoint received");
 		}
 		
-		Map<UUID, Partition> attackSlavesPartitions = slavesPartitions.get(attackNumber);
-		
-		synchronized (attackSlavesPartitions) {
+		synchronized (slavesPartitions) {
 			synchronized (attacksPartitions) {
+				Map<UUID, Partition> attackSlavesPartitions = slavesPartitions.get(attackNumber);
 				Partition partition = attackSlavesPartitions.get(slaveKey);
 				
 				if (currentIndex == partition.getMax()) {
@@ -139,20 +138,18 @@ public class MasterImpl implements Master {
 		synchronized (slaves) {
 //			Distribui particoes para os escravos ligados ao mestre
 			slaves.forEach((slaveKey, namedSlave) -> {
-				Partition partition = partitionsForSlaves.next();
 //				Armazena qual escravo esta responsavel por uma particao num determinado ataque
+				Partition partition = partitionsForSlaves.next();
 				currentAttackSlavesPartitions.put(slaveKey, partition);
+
 //				Fornece os argumentos necessarios para a thread trabalhar uma particao e responder o mestre
 				SlaveRunnable slaveRunnable = new SlaveRunnable(namedSlave);
-//				Para slaveRunnable e passado apenas uma copia da particao em que ele deve operar
+//				Para slaveRunnable sera passado apenas uma copia da particao em que ele deve operar
 				slaveRunnable.setPartition(new Partition(partition));
 				slaveRunnable.setSubAttackParameters(cipherText, knownText, attackNumber, this);
+				
 				Thread slaveThread = new Thread(slaveRunnable);
-				
-				synchronized (currentAttackSlavesThreads) {
-					currentAttackSlavesThreads.add(slaveThread);
-				}
-				
+				currentAttackSlavesThreads.add(slaveThread);
 				slaveThread.start();
 			});
 		}
@@ -165,6 +162,8 @@ public class MasterImpl implements Master {
 					e.printStackTrace();
 				}
 			}
+			
+			currentAttackSlavesThreads.clear();
 		}
 		
 		attacksPartitions.get(attackNumber).forEach(System.out::println);
@@ -206,8 +205,6 @@ public class MasterImpl implements Master {
 			
 			partitions.add(new Partition(min, max));
 		}
-		
-//		dictionary.rewind();
 		
 		return partitions;
 	}
