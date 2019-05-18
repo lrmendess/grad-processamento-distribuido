@@ -80,10 +80,10 @@ public class SlaveImpl implements Slave {
 				}
 			} catch (BadPaddingException e) {
 //				Chave errada
-				notification("[" + dictionary.getLineNumber() + ", " + key + "]: Invalid Key");
+//				notification("[" + dictionary.getLineNumber() + ", " + key + "]: Invalid Key");
 				continue;
 			} catch (InvalidKeyException | IllegalBlockSizeException e) {
-//				Chave mal formatada
+//				Chave mal formatada ou .cipher nao multiplo de 8
 				e.printStackTrace();
 			} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
 //				Se rolarem essas excecoes, a Terra ja estara colidindo com o Sol
@@ -97,7 +97,6 @@ public class SlaveImpl implements Slave {
 	}
 	
 //	Funcao de debug (deve se removida futuramente)
-	@SuppressWarnings("unused")
 	private void notification(String msg) {
 		System.out.println("Slave[name=" + name + ", id=" + id + "]: " + msg);
 	}

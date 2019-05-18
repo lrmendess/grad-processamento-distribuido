@@ -9,51 +9,42 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import br.inf.ufes.ppd.Guess;
 import br.inf.ufes.ppd.Master;
 import br.inf.ufes.ppd.Slave;
-import br.inf.ufes.ppd.slave.SlaveWorker;
+import br.inf.ufes.ppd.slave.NamedSlave;
+import br.inf.ufes.ppd.slave.SlaveRunnable;
 import br.inf.ufes.ppd.utils.DictionaryReader;
 import br.inf.ufes.ppd.utils.Partition;
 import br.inf.ufes.ppd.utils.Sequence;
 
 public class MasterImpl implements Master {
 	
-	private static final long ALPHA = 500;
-	private DictionaryReader dictionary;
-//	Map<ID do Escravo, Escravo>
-	private Map<UUID, SlaveWorker> slaves;
-	private List<Thread> workingSlavesThreads;
-//	Map<Numero do ataque, Particao de leitura no dicionario>
-	private Map<Integer, List<Partition>> attacksAndPartitions;
-//	Map<Numero do ataque, Colecao de Chutes>
-	private Map<Integer, List<Guess>> attacksAndGuesses;
-//	Map<ID do Escravo, Tempo da ultima resposta>
-	private Map<UUID, Long> slavesTimer;
+//	Diretorio do dicionario
+	private String dictionaryPath;
+//	Lista de escravos mapeadas pelo ID do escravo
+	private Map<UUID, NamedSlave> slaves;
+//	Lista de particoes por ataque
+	private Map<Integer, List<Partition>> attacksPartitions;
+//	Mapa que indica qual particao um escravo esta responsavel em um ataque
+	private Map<Integer, Map<UUID, Partition>> slavesPartitions;
+//	Threads que estao atuando
+	private Map<Integer, List<Thread>> workingSlaves;
 	
 	public MasterImpl(String dictionaryPath) {
-		try {
-			dictionary = new DictionaryReader(dictionaryPath);
-			slaves = Collections.synchronizedMap(new HashMap<UUID, SlaveWorker>());
-			attacksAndPartitions = Collections.synchronizedMap(new HashMap<Integer, List<Partition>>());
-			attacksAndGuesses = Collections.synchronizedMap(new HashMap<Integer, List<Guess>>());
-			slavesTimer = Collections.synchronizedMap(new HashMap<UUID, Long>());
-			workingSlavesThreads = Collections.synchronizedList(new ArrayList<Thread>());
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		this.dictionaryPath = dictionaryPath;
+		this.slaves = Collections.synchronizedMap(new HashMap<>());
+		this.attacksPartitions = Collections.synchronizedMap(new HashMap<>());
+		this.workingSlaves = Collections.synchronizedMap(new HashMap<>());
+		this.slavesPartitions = Collections.synchronizedMap(new HashMap<>());
 	}
 	
 	@Override
 	public void addSlave(Slave slave, String slaveName, UUID slaveKey) throws RemoteException {
 		synchronized (slaves) {
-			SlaveWorker slaveWorker = new SlaveWorker(slave, slaveName, slaveKey);
+			NamedSlave namedSlave = new NamedSlave(slave, slaveName, slaveKey);
 			
 //			If statement de debug para poder acompanhar as inscricoes dos escravos
 //			Deve ser removido futuramente
@@ -61,7 +52,7 @@ public class MasterImpl implements Master {
 				notification(slaveName, "Heartbeat Received");
 			} else {
 				notification(slaveName, "Registered");
-				slaves.put(slaveKey, slaveWorker);
+				slaves.put(slaveKey, namedSlave);
 			}
 		}
 	}
@@ -69,7 +60,7 @@ public class MasterImpl implements Master {
 	@Override
 	public void removeSlave(UUID slaveKey) throws RemoteException {
 		synchronized (slaves) {
-			SlaveWorker removedSlave = slaves.remove(slaveKey);
+			NamedSlave removedSlave = slaves.remove(slaveKey);
 	
 			String slaveName = removedSlave.getName();
 			notification(slaveName, "Removed");
@@ -79,80 +70,130 @@ public class MasterImpl implements Master {
 	@Override
 	public synchronized void foundGuess(UUID slaveKey, int attackNumber, long currentIndex, Guess currentGuess)
 			throws RemoteException {
-//		Esse metodo ainda esta meio nebuloso
-//		if (attacksAndGuesses.containsKey(attackNumber)) {
-//			attacksAndGuesses.put(attackNumber, new ArrayList<Guess>());
-//		}
-//		List<Guess> attackGuesses = attacksAndGuesses.get(attackNumber);
-//		
-//		attackGuesses.add(currentGuess);
-//		notification(slaves.get(slaveKey).getName(), "Guess received");
 	}
 
 	@Override
 	public void checkpoint(UUID slaveKey, int attackNumber, long currentIndex) throws RemoteException {
-//		Evita que Threads remanescentes insiram valores que nao existem mais
-		if (slaves.containsKey(slaveKey) == false) {
-			return;
+		synchronized (slaves) {
+//			Evita que Threads remanescentes insiram valores que nao existem mais
+			if (slaves.containsKey(slaveKey) == false) {
+				return;
+			}
+			
+//			Debug
+			NamedSlave namedSlave = slaves.get(slaveKey);
+			notification(namedSlave.getName(), "Checkpoint received");
 		}
 		
-//		Debug
-		notification(slaves.get(slaveKey).getName(), "Checkpoint received");
+		Map<UUID, Partition> attackSlavesPartitions = null;
+		synchronized (slavesPartitions) {
+			attackSlavesPartitions = slavesPartitions.get(attackNumber);
+		}
 		
-		SlaveWorker slaveWorker = slaves.get(slaveKey);
-		Partition partition = slaveWorker.getPartition();
-		
-		if (currentIndex == partition.getMax()) {
-//			Terminou a particao
-//			Remover a tarefa do escravo
-			slaveWorker.setPartition(null);
-//			Remover a particao da lista de particoes do seu ataque
-			attacksAndPartitions.get(attackNumber).remove(partition);
-			
-		} else {
-//			Ainda nao terminou a particao
-//			Reajustar o indice da particao que o escravo ja passou
-			if (currentIndex != -1) {
-//				Por convencao, -1 indica que o escravo ainda nao testou nenhuma palavra
-				partition.setMin((int) currentIndex);
+		synchronized (attackSlavesPartitions) {
+			synchronized (attacksPartitions) {
+				Partition partition = attackSlavesPartitions.get(slaveKey);
+
+				if (currentIndex == partition.getMax()) {
+//					Terminou a particao
+//					Remover a particao em que o escravo de UUID "slaveKey" estava trabalhando
+					attackSlavesPartitions.remove(slaveKey);
+//					Remover a particao da lista de particoes do ataque
+//					TODO tentar remover por index
+					attacksPartitions.get(attackNumber).remove(partition);
+				} else {
+//					Ainda nao terminou a particao
+//					Reajustar o indice da particao que o escravo ja passou
+					if (currentIndex != -1) {
+//						Por convencao, -1 indica que o escravo ainda nao testou nenhuma palavra
+						int toInt = (int) currentIndex;
+						partition.setMin(toInt);
+					}
+				}
 			}
 		}
 	}
 
 	@Override
 	public Guess[] attack(byte[] cipherText, byte[] knownText) throws RemoteException {
-//		Adiciona um numero de ataque e as particoes a serem exploradas
-		int attackNumber = Sequence.nextValue();
+//		Resgatar o numero do ataque e as particoes de dicionario que serao distribuidas
+		Integer attackNumber = Sequence.nextValue();
 		List<Partition> partitions = partitionDictionary();
-		attacksAndPartitions.put(attackNumber, partitionDictionary());
 		
-		Iterator<Partition> partitionsForSlaves = attacksAndPartitions.get(attackNumber).iterator();
-		
-		for (Entry<UUID, SlaveWorker> entry : slaves.entrySet()) {
-			SlaveWorker sw = entry.getValue();
-			sw.setPartition(partitionsForSlaves.next());
-			sw.setSubAttackParameters(cipherText, knownText, attackNumber, this);
-			Thread t = new Thread(sw);
-			workingSlavesThreads.add(t);
-			t.start();
+		synchronized (attacksPartitions) {
+//			Armazena as particoes referentes a um ataque
+			attacksPartitions.put(attackNumber, partitions);
 		}
 		
-		for (Thread t : workingSlavesThreads) {
-			try {
-				t.join();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+		synchronized (slavesPartitions) {
+//			Inicializa o mapa que indica qual escravo esta trabalhando numa particao especifica
+			slavesPartitions.put(attackNumber, Collections.synchronizedMap(new HashMap<>()));
+		}
+		
+		synchronized (workingSlaves) {
+			workingSlaves.put(attackNumber, Collections.synchronizedList(new ArrayList<>()));
+		}
+		
+		List<Thread> currentAttackSlavesThreads = workingSlaves.get(attackNumber);
+		Map<UUID, Partition> currentAttackSlavesPartitions = slavesPartitions.get(attackNumber);
+		Iterator<Partition> partitionsForSlaves = attacksPartitions.get(attackNumber).iterator();
+		
+//		Resgata o mapa de particoes que escravos estarao trabalhando nesse ataque
+		synchronized (slaves) {
+//			Distribui particoes para os escravos ligados ao mestre
+			slaves.forEach((slaveKey, namedSlave) -> {
+				Partition partition = partitionsForSlaves.next();
+//				Armazena qual escravo esta responsavel por uma particao num determinado ataque
+				currentAttackSlavesPartitions.put(slaveKey, partition);
+//				Fornece os argumentos necessarios para a thread trabalhar uma particao e responder o mestre
+				SlaveRunnable slaveRunnable = new SlaveRunnable(namedSlave);
+//				Para slaveRunnable e passado apenas uma copia da particao em que ele deve operar
+				slaveRunnable.setPartition(new Partition(partition));
+				slaveRunnable.setSubAttackParameters(cipherText, knownText, attackNumber, this);
+				Thread slaveThread = new Thread(slaveRunnable);
+				
+				synchronized (currentAttackSlavesThreads) {
+					currentAttackSlavesThreads.add(slaveThread);
+				}
+				
+				slaveThread.start();
+			});
+		}
+		
+		synchronized (currentAttackSlavesThreads) {
+			for (Thread thread : currentAttackSlavesThreads) {
+				try {
+					thread.join();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
+		
+		attacksPartitions.get(attackNumber).forEach(System.out::println);
+		slavesPartitions.get(attackNumber).entrySet().forEach(System.out::println);
 		
 		return null;
 	}
 	
 	private List<Partition> partitionDictionary() {
+		DictionaryReader dictionary = null;
+		
+		try {
+			dictionary = new DictionaryReader(dictionaryPath);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 		List<Partition> partitions = new ArrayList<Partition>();
 		
-		int partitionLength = dictionary.countAllLines() / slaves.size();
-		int partitionLeftovers = dictionary.countAllLines() % slaves.size();
+		int partitionLength = 0, partitionLeftovers = 0;
+		synchronized (slaves) {
+			partitionLength = dictionary.countAllLines() / slaves.size();
+			partitionLeftovers = dictionary.countAllLines() % slaves.size();
+		}
 		
 		while (dictionary.ready()) {
 			int min = dictionary.getLineNumber();
@@ -169,7 +210,7 @@ public class MasterImpl implements Master {
 			partitions.add(new Partition(min, max));
 		}
 		
-		dictionary.rewind();
+//		dictionary.rewind();
 		
 		return partitions;
 	}

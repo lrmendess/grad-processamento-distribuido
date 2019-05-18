@@ -1,17 +1,14 @@
 package br.inf.ufes.ppd.slave;
 
 import java.rmi.RemoteException;
-import java.util.UUID;
 
 import br.inf.ufes.ppd.Slave;
 import br.inf.ufes.ppd.SlaveManager;
 import br.inf.ufes.ppd.utils.Partition;
 
-public class SlaveWorker implements Runnable {
+public class SlaveRunnable implements Runnable {
 
-	private Slave slave;
-	private String name;
-	private UUID key;
+	private NamedSlave namedSlave;
 
 	private Partition partition;
 
@@ -20,35 +17,8 @@ public class SlaveWorker implements Runnable {
 	private int attackNumber;
 	private SlaveManager callbackInterface;
 
-	public SlaveWorker(Slave slave, String name, UUID key) {
-		this.name = name;
-		this.key = key;
-		this.slave = slave;
-		this.partition = null;
-	}
-
-	public UUID getKey() {
-		return key;
-	}
-
-	public void setKey(UUID key) {
-		this.key = key;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public Slave getSlave() {
-		return slave;
-	}
-
-	public void setSlave(Slave slave) {
-		this.slave = slave;
+	public SlaveRunnable(NamedSlave namedSlave) {
+		this.namedSlave = namedSlave;
 	}
 
 	public Partition getPartition() {
@@ -70,6 +40,8 @@ public class SlaveWorker implements Runnable {
 	@Override
 	public void run() {
 		try {
+			Slave slave = namedSlave.getSlave();
+
 			slave.startSubAttack(cipherText, knownText, partition.getMin(), partition.getMax(), attackNumber,
 					callbackInterface);
 

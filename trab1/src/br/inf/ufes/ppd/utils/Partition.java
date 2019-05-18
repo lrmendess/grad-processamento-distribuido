@@ -9,6 +9,11 @@ public class Partition {
 		this.min = min;
 		this.max = max;
 	}
+	
+	public Partition(Partition partition) { 
+		this.min = partition.getMin();
+		this.max = partition.getMax();
+	}
 
 	public int getMin() {
 		return min;
