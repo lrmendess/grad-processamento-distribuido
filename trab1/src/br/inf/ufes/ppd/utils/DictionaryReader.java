@@ -44,6 +44,18 @@ public class DictionaryReader implements Iterable<String> {
 	}
 	
 	/**
+	 * Copia de dictionary reader (sem salvar o estado do ponteiro)
+	 * 
+	 * @param dictionaryReader
+	 */
+	public DictionaryReader(DictionaryReader dictionaryReader) {
+		this.lines = new ArrayList<String>(dictionaryReader.lines);
+		this.start = 0;
+		this.end = dictionaryReader.countAllLines();
+		this.currentLineNumber = 0;
+	}
+	
+	/**
 	 * Estabelece um range de leitura entre as linhas do arquivo
 	 * 
 	 * @param index de inicio
