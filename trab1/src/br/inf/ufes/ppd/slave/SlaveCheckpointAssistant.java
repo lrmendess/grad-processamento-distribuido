@@ -29,14 +29,13 @@ public class SlaveCheckpointAssistant implements Runnable {
 	}
 
 	public void workFinished() {
-		workFinished = true;
-
 		try {
 			notification("Partitions done!");
 //			Acresce UM no ultimo index para que ele saia da borda da particao e o Master
 //			perceba que o escravo terminou de testa-la.
 			synchronized (callbackInterface) {
-				callbackInterface.checkpoint(slaveId, attackNumber, currentIndex + 1);
+				workFinished = true;
+				callbackInterface.checkpoint(slaveId, attackNumber, currentIndex);
 			}
 		} catch (RemoteException e) {
 //			TODO Auto-generated catch block

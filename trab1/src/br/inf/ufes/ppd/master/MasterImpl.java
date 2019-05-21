@@ -18,7 +18,6 @@ import br.inf.ufes.ppd.slave.NamedSlave;
 import br.inf.ufes.ppd.slave.SlaveRunnable;
 import br.inf.ufes.ppd.utils.DictionaryReader;
 import br.inf.ufes.ppd.utils.Partition;
-import br.inf.ufes.ppd.utils.Sequence;
 
 public class MasterImpl implements Master {
 	
@@ -26,8 +25,8 @@ public class MasterImpl implements Master {
 	private String dictionaryPath;
 //	Lista de escravos mapeadas pelo ID do escravo
 	private Map<UUID, NamedSlave> slaves;
-//	Mapa que indica qual particao um escravo esta responsavel em um ataque
-	private Map<Integer, Map<UUID, Partition>> slavesPartitions;
+//	Mapa que indica quais particoes um escravo esta responsavel em um ataque
+	private Map<Integer, Attack> attacks;
 //	Threads que estao atuando
 	private Map<Integer, List<Thread>> workingSlaves;
 	
@@ -35,7 +34,7 @@ public class MasterImpl implements Master {
 		this.dictionaryPath = dictionaryPath;
 		this.slaves = Collections.synchronizedMap(new HashMap<>());
 		this.workingSlaves = Collections.synchronizedMap(new HashMap<>());
-		this.slavesPartitions = Collections.synchronizedMap(new HashMap<>());
+		this.attacks = Collections.synchronizedMap(new HashMap<>());
 	}
 	
 	@Override
@@ -56,6 +55,7 @@ public class MasterImpl implements Master {
 
 	@Override
 	public void removeSlave(UUID slaveKey) throws RemoteException {
+//		Remove o escravo da lista de escravos
 		synchronized (slaves) {
 			NamedSlave removedSlave = slaves.remove(slaveKey);
 	
@@ -71,54 +71,27 @@ public class MasterImpl implements Master {
 
 	@Override
 	public void checkpoint(UUID slaveKey, int attackNumber, long currentIndex) throws RemoteException {
-//		Evita que Threads remanescentes atualizem valores que nao existem mais
-		if (slavesPartitions.get(attackNumber).containsKey(slaveKey) == false) {
-			return;
-		}
+		attacks.get(attackNumber).updatePartition(slaveKey, (int) currentIndex);
 		
 //		Notificacao para debug
 		NamedSlave namedSlave = slaves.get(slaveKey);
 		String slaveName = namedSlave.getName();
 		notification(slaveName, "Checkpoint received");
-		
-		Map<UUID, Partition> attackSlavesPartitions = slavesPartitions.get(attackNumber);
-		
-		synchronized (attackSlavesPartitions) {
-			Partition partition = attackSlavesPartitions.get(slaveKey);
-			
-			if (currentIndex == partition.getMax()) {
-//				Terminou a particao
-//				Remover a particao em que o escravo de UUID "slaveKey" estava trabalhando
-				attackSlavesPartitions.remove(slaveKey);
-			} else {
-//				Ainda nao terminou a particao
-//				Reajustar o indice da particao que o escravo ja passou
-				if (currentIndex != -1) {
-//					Por convencao, -1 indica que o escravo ainda nao testou nenhuma palavra
-					int toInt = (int) currentIndex;
-					partition.setMin(toInt);
-				}
-			}
-		}
 	}
 
 	@Override
 	public Guess[] attack(byte[] cipherText, byte[] knownText) throws RemoteException {
-//		Resgatar o numero do ataque e as particoes de dicionario que serao distribuidas
-		Integer attackNumber = Sequence.nextValue();
-		List<Partition> partitions = partitionDictionary();
+		Attack attack = new Attack();
+		Integer attackNumber = attack.getAttackNumber();
+		attacks.put(attackNumber, attack);
 		
-		synchronized (slavesPartitions) {
-//			Inicializa o mapa que indica qual escravo esta trabalhando numa particao especifica
-			slavesPartitions.put(attackNumber, Collections.synchronizedMap(new HashMap<>()));
-		}
+		List<Partition> partitions = partitionDictionary();
 		
 		synchronized (workingSlaves) {
 			workingSlaves.put(attackNumber, Collections.synchronizedList(new ArrayList<>()));
 		}
 		
 		List<Thread> currentAttackSlavesThreads = workingSlaves.get(attackNumber);
-		Map<UUID, Partition> currentAttackSlavesPartitions = slavesPartitions.get(attackNumber);
 		Iterator<Partition> partitionsForSlaves = partitions.iterator();
 		
 //		Resgata o mapa de particoes que escravos estarao trabalhando nesse ataque
@@ -127,24 +100,29 @@ public class MasterImpl implements Master {
 			slaves.forEach((slaveKey, namedSlave) -> {
 //				Armazena qual escravo esta responsavel por uma particao num determinado ataque
 				Partition partition = partitionsForSlaves.next();
-				currentAttackSlavesPartitions.put(slaveKey, partition);
+				attack.addPartition(slaveKey, partition);
 
 //				Fornece os argumentos necessarios para a thread trabalhar uma particao e responder o mestre
 				SlaveRunnable slaveRunnable = new SlaveRunnable(namedSlave);
 //				Para slaveRunnable sera passado apenas uma copia da particao em que ele deve operar
-				slaveRunnable.setPartition(new Partition(partition));
+				slaveRunnable.setPartition(partition);
 				slaveRunnable.setSubAttackParameters(cipherText, knownText, attackNumber, this);
 				
 				Thread slaveThread = new Thread(slaveRunnable);
 				currentAttackSlavesThreads.add(slaveThread);
-				slaveThread.start();
 			});
 		}
 		
+//		Inicia as threads dos escravos
 		synchronized (currentAttackSlavesThreads) {
-			for (Thread thread : currentAttackSlavesThreads) {
+			currentAttackSlavesThreads.forEach(Thread::start);
+		}
+		
+//		Precisamos iterar por indexacao pois a iteracao nao pode falhar durante adicoes de novas threads
+		synchronized (currentAttackSlavesThreads) {
+			for (int i = 0; i < currentAttackSlavesThreads.size(); i++) {
 				try {
-					thread.join();
+					currentAttackSlavesThreads.get(i).join();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -153,7 +131,7 @@ public class MasterImpl implements Master {
 			currentAttackSlavesThreads.clear();
 		}
 		
-		slavesPartitions.get(attackNumber).entrySet().forEach(System.out::println);
+		attack.printSlavePartitions();
 		
 		return null;
 	}

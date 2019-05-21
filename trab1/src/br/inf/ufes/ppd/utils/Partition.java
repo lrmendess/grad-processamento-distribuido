@@ -31,6 +31,10 @@ public class Partition {
 		this.max = max;
 	}
 	
+	public boolean isBetweenTheRange(int index) {
+		return (index >= min) && (index < max);
+	}
+	
 	@Override
 	public String toString() {
 		return "Partition[min=" + min + ", max=" + max + "]";

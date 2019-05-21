@@ -23,12 +23,19 @@ public class SlaveImpl implements Slave {
 	private final String name;
 	private final UUID id;
 	
-	private DictionaryReader dictionary;
-
+	private final String dictionaryPath;
+	
 	public SlaveImpl(String name, UUID id, String dictionaryPath) {
 		this.name = name;
 		this.id = id;
+		this.dictionaryPath = dictionaryPath;
+	}
+	
+	@Override
+	public synchronized void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
+			int attackNumber, SlaveManager callbackInterface) throws RemoteException {
 		
+		DictionaryReader dictionary = null;
 		try {
 			dictionary = new DictionaryReader(dictionaryPath);
 		} catch (FileNotFoundException e) {
@@ -36,17 +43,11 @@ public class SlaveImpl implements Slave {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	@Override
-	public synchronized void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
-			int attackNumber, SlaveManager callbackInterface) throws RemoteException {
-
+		
 //		Abertura do utilitario de leitura de dicionario com fechamento automatico
 		int start = (int) initialWordIndex;
 		int end = (int) finalWordIndex;
 		dictionary.setRange(start, end);
-		dictionary.rewind();
 		
 		SlaveCheckpointAssistant checkPointAssistant = new SlaveCheckpointAssistant(name, id, attackNumber,
 				callbackInterface);
