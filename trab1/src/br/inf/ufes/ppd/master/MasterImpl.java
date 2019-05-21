@@ -28,12 +28,12 @@ public class MasterImpl implements Master {
 //	Mapa que indica quais particoes um escravo esta responsavel em um ataque
 	private Map<Integer, Attack> attacks;
 //	Threads que estao atuando
-	private Map<Integer, List<Thread>> workingSlaves;
+	private Map<Integer, List<Thread>> slaveThreads;
 	
 	public MasterImpl(String dictionaryPath) {
 		this.dictionaryPath = dictionaryPath;
 		this.slaves = Collections.synchronizedMap(new HashMap<>());
-		this.workingSlaves = Collections.synchronizedMap(new HashMap<>());
+		this.slaveThreads = Collections.synchronizedMap(new HashMap<>());
 		this.attacks = Collections.synchronizedMap(new HashMap<>());
 	}
 	
@@ -75,8 +75,7 @@ public class MasterImpl implements Master {
 		
 //		Notificacao para debug
 		NamedSlave namedSlave = slaves.get(slaveKey);
-		String slaveName = namedSlave.getName();
-		notification(slaveName, "Checkpoint received");
+		notification(namedSlave.getName(), "Checkpoint received");
 	}
 
 	@Override
@@ -85,17 +84,17 @@ public class MasterImpl implements Master {
 		Integer attackNumber = attack.getAttackNumber();
 		attacks.put(attackNumber, attack);
 		
-		List<Partition> partitions = partitionDictionary();
-		
-		synchronized (workingSlaves) {
-			workingSlaves.put(attackNumber, Collections.synchronizedList(new ArrayList<>()));
+		synchronized (slaveThreads) {
+			slaveThreads.put(attackNumber, Collections.synchronizedList(new ArrayList<Thread>()));
 		}
 		
-		List<Thread> currentAttackSlavesThreads = workingSlaves.get(attackNumber);
-		Iterator<Partition> partitionsForSlaves = partitions.iterator();
+		List<Thread> currentAttackSlavesThreads = slaveThreads.get(attackNumber);
 		
 //		Resgata o mapa de particoes que escravos estarao trabalhando nesse ataque
 		synchronized (slaves) {
+			List<Partition> partitions = partitionDictionary();
+			Iterator<Partition> partitionsForSlaves = partitions.iterator();
+			
 //			Distribui particoes para os escravos ligados ao mestre
 			slaves.forEach((slaveKey, namedSlave) -> {
 //				Armazena qual escravo esta responsavel por uma particao num determinado ataque
@@ -114,21 +113,21 @@ public class MasterImpl implements Master {
 		}
 		
 //		Inicia as threads dos escravos
-		synchronized (currentAttackSlavesThreads) {
-			currentAttackSlavesThreads.forEach(Thread::start);
-		}
+		currentAttackSlavesThreads.forEach(Thread::start);
 		
 //		Precisamos iterar por indexacao pois a iteracao nao pode falhar durante adicoes de novas threads
-		synchronized (currentAttackSlavesThreads) {
-			for (int i = 0; i < currentAttackSlavesThreads.size(); i++) {
-				try {
-					currentAttackSlavesThreads.get(i).join();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+		currentAttackSlavesThreads.forEach(thread -> {
+			try {
+				thread.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
-			
-			currentAttackSlavesThreads.clear();
+		});
+//		Remove todas as threads referentes a um ataque
+		currentAttackSlavesThreads.clear();
+		
+		synchronized (slaveThreads) {
+			slaveThreads.remove(attackNumber);
 		}
 		
 		attack.printSlavePartitions();

@@ -32,7 +32,7 @@ public class SlaveImpl implements Slave {
 	}
 	
 	@Override
-	public synchronized void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
+	public void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
 			int attackNumber, SlaveManager callbackInterface) throws RemoteException {
 		
 		DictionaryReader dictionary = null;
@@ -48,13 +48,14 @@ public class SlaveImpl implements Slave {
 		int start = (int) initialWordIndex;
 		int end = (int) finalWordIndex;
 		dictionary.setRange(start, end);
+		dictionary.rewind();
 		
 		SlaveCheckpointAssistant checkPointAssistant = new SlaveCheckpointAssistant(name, id, attackNumber,
 				callbackInterface);
 		
 		Thread checkPointAssistantThread = new Thread(checkPointAssistant);
 		checkPointAssistantThread.start();
-		
+
 //		Enquanto houver alguma coisa para ler no dicionario...
 		while (dictionary.ready()) {
 			String key = dictionary.readLine();
