@@ -1,7 +1,6 @@
 package br.inf.ufes.ppd.utils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -27,19 +26,22 @@ public class DictionaryReader implements Iterable<String> {
 	 * @param caminho do arquivo
 	 * @throws IOException
 	 */
-	public DictionaryReader(String filePath) throws IOException, FileNotFoundException {
+	public DictionaryReader(String filePath) {
 		File file = new File(filePath);
 		
-		if (!file.exists()) {
-			throw new FileNotFoundException();
+		if (file.exists()) {
+			try {
+				lines = Files.readAllLines(file.toPath());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			System.err.println("Arquivo de dicionario " + filePath + " nao foi encontrado");
+			lines = new ArrayList<>();
 		}
-		
-		/* ArrayList<String> */
-		lines = Files.readAllLines(file.toPath());
 		
 		start = 0;
 		end = lines.size();
-		
 		currentLineNumber = 0;
 	}
 	
@@ -52,6 +54,18 @@ public class DictionaryReader implements Iterable<String> {
 		this.lines = new ArrayList<String>(dictionaryReader.lines);
 		this.start = 0;
 		this.end = dictionaryReader.countAllLines();
+		this.currentLineNumber = 0;
+	}
+	
+	/**
+	 * Copia de uma lista
+	 * 
+	 * @param lines
+	 */
+	public DictionaryReader(List<String> lines) {
+		this.lines = lines;
+		this.start = 0;
+		this.end = lines.size();
 		this.currentLineNumber = 0;
 	}
 	
@@ -185,6 +199,36 @@ public class DictionaryReader implements Iterable<String> {
 	 */
 	public int getLineNumber() {
 		return currentLineNumber;
+	}
+	
+	/**
+	 * Fragmenta um dicionario em N particoes
+	 * 
+	 * @param numberOfPartitions
+	 * @return lista de particoes
+	 */
+	public List<Partition> toPartitions(int numberOfPartitions) {
+		List<Partition> partitions = new ArrayList<Partition>();
+
+		int partitionLength = countAllLines() / numberOfPartitions;
+		int partitionLeftovers = countAllLines() % numberOfPartitions;
+
+		while (ready()) {
+			int min = getLineNumber();
+
+			if (partitionLeftovers > 0) {
+				seek(partitionLength + 1);
+				partitionLeftovers--;
+			} else {
+				seek(partitionLength);
+			}
+
+			int max = getLineNumber();
+
+			partitions.add(new Partition(min, max));
+		}
+
+		return partitions;
 	}
 
 	@Override

@@ -1,8 +1,5 @@
 package br.inf.ufes.ppd.slave;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-
 import java.rmi.RemoteException;
 import java.util.UUID;
 
@@ -20,14 +17,7 @@ public class SlaveImpl implements Slave {
 	public SlaveImpl(String name, UUID id, String dictionaryPath) {
 		this.name = name;
 		this.id = id;
-
-		try {
-			baseDictionary = new DictionaryReader(dictionaryPath);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		this.baseDictionary = new DictionaryReader(dictionaryPath);
 	}
 
 	@Override

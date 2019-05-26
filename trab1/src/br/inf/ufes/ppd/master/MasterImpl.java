@@ -1,9 +1,6 @@
 package br.inf.ufes.ppd.master;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.rmi.RemoteException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -84,7 +81,8 @@ public class MasterImpl implements Master {
 		attacks.put(attackNumber, attack);
 
 		synchronized (slaves) {
-			List<Partition> partitions = partitionDictionary();
+			DictionaryReader dictionary = new DictionaryReader(dictionaryPath);
+			List<Partition> partitions = dictionary.toPartitions(slaves.size());
 			Iterator<Partition> partitionsForSlaves = partitions.iterator();
 
 			for (Entry<UUID, NamedSlave> entry : slaves.entrySet()) {
@@ -98,7 +96,13 @@ public class MasterImpl implements Master {
 				Integer max = partition.getMax();
 
 				Slave slave = namedSlave.getSlave();
-				slave.startSubAttack(cipherText, knownText, min, max, attackNumber, this);
+				
+				try {
+					slave.startSubAttack(cipherText, knownText, min, max, attackNumber, this);
+				} catch (RemoteException e) {
+//					Escravo com problemas, reescalonar sua tarefa
+					reAttack();
+				}
 			}
 		}
 
@@ -113,42 +117,12 @@ public class MasterImpl implements Master {
 
 		return attack.guesses().stream().toArray(Guess[]::new);
 	}
-
-	private List<Partition> partitionDictionary() {
-		DictionaryReader dictionary = null;
-
-		try {
-			dictionary = new DictionaryReader(dictionaryPath);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		List<Partition> partitions = new ArrayList<Partition>();
-
-		int partitionLength = 0, partitionLeftovers = 0;
-		synchronized (slaves) {
-			partitionLength = dictionary.countAllLines() / slaves.size();
-			partitionLeftovers = dictionary.countAllLines() % slaves.size();
-		}
-
-		while (dictionary.ready()) {
-			int min = dictionary.getLineNumber();
-
-			if (partitionLeftovers > 0) {
-				dictionary.seek(partitionLength + 1);
-				partitionLeftovers--;
-			} else {
-				dictionary.seek(partitionLength);
-			}
-
-			int max = dictionary.getLineNumber();
-
-			partitions.add(new Partition(min, max));
-		}
-
-		return partitions;
+	
+//	TODO implementar um "re-ataque" para que particoes pertencentes a um escravo que
+//	apresentou algum problema possa ser escalonada pra os demais escravos ainda conectados
+//	ao mestre.
+	public void reAttack() {
+		
 	}
 
 //	Funcao de debug (deve se removida futuramente)
