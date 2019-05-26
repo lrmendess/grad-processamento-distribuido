@@ -99,6 +99,7 @@ public class SlaveRunnable implements Runnable {
 
 				if (decryptedStr.contains(knownTextStr)) {
 					try {
+						System.out.println("FoundGuess");
 						callbackInterface.foundGuess(slaveKey, attackNumber, dictionary.getLineNumber() - 1, guess);
 					} catch (RemoteException e) {
 //						Houve algum problema com o mestre durante o ataque.

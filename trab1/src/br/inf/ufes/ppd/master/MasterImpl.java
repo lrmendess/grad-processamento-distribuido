@@ -62,8 +62,10 @@ public class MasterImpl implements Master {
 	}
 
 	@Override
-	public synchronized void foundGuess(UUID slaveKey, int attackNumber, long currentIndex, Guess currentGuess)
+	public void foundGuess(UUID slaveKey, int attackNumber, long currentIndex, Guess currentGuess)
 			throws RemoteException {
+		
+		attacks.get(attackNumber).addGuess(currentGuess);
 	}
 
 	@Override
@@ -94,13 +96,22 @@ public class MasterImpl implements Master {
 				
 				Integer min = partition.getMin();
 				Integer max = partition.getMax();
-				namedSlave.getSlave().startSubAttack(cipherText, knownText, min, max, attackNumber, this);
+
+				Slave slave = namedSlave.getSlave();
+				slave.startSubAttack(cipherText, knownText, min, max, attackNumber, this);
 			}
 		}
 
-		attack.printSlavePartitions();
+		Thread attackThread = new Thread(attack);
+		attackThread.start();
+		
+		try {
+			attackThread.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
-		return null;
+		return attack.guesses().stream().toArray(Guess[]::new);
 	}
 
 	private List<Partition> partitionDictionary() {

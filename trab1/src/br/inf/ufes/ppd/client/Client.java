@@ -6,6 +6,7 @@ import java.rmi.NotBoundException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
+import br.inf.ufes.ppd.Guess;
 import br.inf.ufes.ppd.Master;
 import br.inf.ufes.ppd.utils.ByteArray;
 
@@ -33,7 +34,12 @@ public class Client {
 				ByteArray.createFile(file, encryptedMessage);
 			}
 			
-			master.attack(encryptedMessage, args[1].getBytes());
+			Guess[] guesses = master.attack(encryptedMessage, args[1].getBytes());
+			
+			System.out.println("[Guesses]");
+			for (Guess guess : guesses) {
+				System.out.println(guess.getKey());
+			}
 			
 		} catch (IOException e) {
 //			Houve uma falha na leitura do arquivo
