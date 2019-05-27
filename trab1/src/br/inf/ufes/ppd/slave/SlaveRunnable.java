@@ -88,14 +88,14 @@ public class SlaveRunnable implements Runnable {
 
 				byte[] decrypted = cipher.doFinal(cipherText);
 
-				System.out.println(slaveName + " -> [" + dictionary.getLineNumber() + ", " + key + "]: Gotcha!!");
-
 				Guess guess = new Guess();
 				guess.setKey(key);
 				guess.setMessage(decrypted);
 
 				String decryptedStr = new String(decrypted);
 				String knownTextStr = new String(knownText);
+				
+				System.out.println(slaveName + " -> " + key);
 
 				if (decryptedStr.contains(knownTextStr)) {
 					try {

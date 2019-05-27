@@ -208,10 +208,10 @@ public class DictionaryReader implements Iterable<String> {
 	 * @return lista de particoes
 	 */
 	public List<Partition> toPartitions(int numberOfPartitions) {
-		List<Partition> partitions = new ArrayList<Partition>();
+		List<Partition> partitions = new ArrayList<>();
 
-		int partitionLength = countAllLines() / numberOfPartitions;
-		int partitionLeftovers = countAllLines() % numberOfPartitions;
+		int partitionLength = countLines() / numberOfPartitions;
+		int partitionLeftovers = countLines() % numberOfPartitions;
 
 		while (ready()) {
 			int min = getLineNumber();
@@ -230,7 +230,7 @@ public class DictionaryReader implements Iterable<String> {
 
 		return partitions;
 	}
-
+	
 	@Override
 	public Iterator<String> iterator() {
 		return new Iterator<String>() {

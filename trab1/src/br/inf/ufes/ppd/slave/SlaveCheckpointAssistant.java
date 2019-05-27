@@ -7,6 +7,7 @@ import br.inf.ufes.ppd.SlaveManager;
 
 public class SlaveCheckpointAssistant implements Runnable {
 
+	@SuppressWarnings("unused")
 	private String slaveName;
 	private UUID slaveId;
 
@@ -30,7 +31,7 @@ public class SlaveCheckpointAssistant implements Runnable {
 
 	public void workFinished() {
 		try {
-			notification("Partitions done!");
+			System.out.println("Partitions done!");
 //			Acresce UM no ultimo index para que ele saia da borda da particao e o Master
 //			perceba que o escravo terminou de testa-la.
 			synchronized (callbackInterface) {
@@ -54,22 +55,17 @@ public class SlaveCheckpointAssistant implements Runnable {
 						break;
 					}
 //					Envia o checkpoint para o mestre via interface SlaveManager
-					notification("Checkpoint sent");
+					System.out.println("Checkpoint sent");
 					callbackInterface.checkpoint(slaveId, attackNumber, currentIndex);
 				}
 			} catch (InterruptedException e) {
 //				Falha na thread
 				e.printStackTrace();
 			} catch (RemoteException e) {
-				notification("Master not found");
+				System.out.println("Master not found");
 				e.printStackTrace();
 			}
 		}
 	}
 	
-//	Funcao de debug (deve se removida futuramente)
-	private void notification(String msg) {
-		System.out.println("Slave[name=" + slaveName + "]: " + msg);
-	}
-
 }
