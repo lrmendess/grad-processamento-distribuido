@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -50,25 +51,44 @@ public class MasterImpl implements Master {
 			@Override
 			public void run() {
 				synchronized (slavesTimer) {
-//					Preenche uma lista com ids de escravos que nao respondem ha mais de 20s (+alpha)
-					List<UUID> candidateToBeRemoved = slavesTimer.entrySet()
+					Long currentTimeInMillis = System.currentTimeMillis();
+//					Preenche uma lista com ids de escravos que nao respondem ha mais de 20s (checkpoint)
+//					Preenche uma lista com ids de escravos que nao respondem ha mais de 30s (hearbeat)
+					Set<UUID> candidateToBeRemoved = slavesTimer.entrySet()
 							.stream()
-							.filter(entry -> (System.currentTimeMillis() - entry.getValue()) > 21000)
+							.filter(entry -> (currentTimeInMillis - entry.getValue()) > 22000)
 							.map(Entry::getKey)
-							.collect(Collectors.toList());
+							.collect(Collectors.toSet());
 					
 //					Removemos da lista de tempo o uuid dos escravos que nao estao mais em operacao
 					candidateToBeRemoved.stream().forEach(uuid -> slavesTimer.remove(uuid));
 					
 //					Se o escravo nao responde a mais de 20 segundos e esta ocupado em algum ataque, ele caiu
+//					Se o escravo nao envia heartbeat a mais de 30 segundos, ele caiu (repetido)
 					List<UUID> removedSlaves = candidateToBeRemoved
 							.stream()
 							.filter(uuid -> slaveIsBusy(uuid))
 							.collect(Collectors.toList());
 					
 					synchronized (slaves) {
-//						Remocao da lista de escravos
-						removedSlaves.forEach(uuid -> slaves.remove(uuid));
+//						Remove os escravos que nao dao heartbeat a mais de 30 segundos
+						slaves.forEach((uuid, namedSlave) -> {
+							Long heartbeatTimeDiff = currentTimeInMillis - namedSlave.getHeartbeatTime();
+							
+							System.out.println("Tempo sem heartbeat: " + namedSlave.getName() + " " + heartbeatTimeDiff);
+							
+							if (heartbeatTimeDiff > 33000) {
+								removedSlaves.add(uuid);
+							}
+						});
+						
+//						Remove os escravos que nao estao mais ativos, da lista de escravos do mestre
+						removedSlaves.forEach(uuid ->  {
+							NamedSlave namedSlave = slaves.remove(uuid);
+							
+							System.out.println("Removed Slave: " + namedSlave.getName());
+						});
+						
 //						Agora vamos reescalonar as particoes dos escravos removidos para outros escravos
 						synchronized (attacks) {
 //							Para cada ataque, vamos recuperar as particoes que estao pendentes
@@ -93,7 +113,7 @@ public class MasterImpl implements Master {
 				}
 			};
 		};
-		timer.schedule(timerTask, 5000, 5000);
+		timer.schedule(timerTask, 0, 5000);
 	}
 
 	@Override
@@ -111,6 +131,9 @@ public class MasterImpl implements Master {
 				System.out.println("Registered [" + slaveName + "]");
 				slaves.put(slaveKey, namedSlave);
 			}
+			
+			Long currentTimeInMillis = System.currentTimeMillis();
+			namedSlave.setHeartbeatTime(currentTimeInMillis);
 		}
 	}
 
@@ -141,6 +164,11 @@ public class MasterImpl implements Master {
 //		Caso o escravo que enviou o checkpoint esteja na lista de tempo de resposta de escravos,
 //		iremos alterar o valor de sua resposta para o tempo mais atual
 		synchronized (slavesTimer) {
+//			Evita que algum atrasadinho (+20s) atualize seu tempo, ele sera removido pela timer thread
+			if (!slavesTimer.containsKey(slaveKey)) {
+				return;
+			}
+			
 //			Se depois da atualizacao da particao o escravo nao estiver em nenhum ataque, significa que ele
 //			terminou todas as suas tarefas e pode ser removido do timer
 			boolean busySlave = slaveIsBusy(slaveKey);

@@ -9,6 +9,7 @@ public class NamedSlave {
 	private Slave slave;
 	private String name;
 	private UUID key;
+	private Long heartbeatTime;
 
 	public NamedSlave(Slave slave, String name, UUID key) {
 		this.slave = slave;
@@ -38,6 +39,14 @@ public class NamedSlave {
 
 	public void setSlave(Slave slave) {
 		this.slave = slave;
+	}
+
+	public Long getHeartbeatTime() {
+		return heartbeatTime;
+	}
+
+	public void setHeartbeatTime(Long heartBeatTime) {
+		this.heartbeatTime = heartBeatTime;
 	}
 
 }
