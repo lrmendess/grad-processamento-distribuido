@@ -63,7 +63,7 @@ public class DictionaryReader implements Iterable<String> {
 	 * @param lines
 	 */
 	public DictionaryReader(List<String> lines) {
-		this.lines = lines;
+		this.lines = new ArrayList<String>(lines);
 		this.start = 0;
 		this.end = lines.size();
 		this.currentLineNumber = 0;

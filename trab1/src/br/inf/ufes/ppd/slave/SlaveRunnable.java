@@ -67,6 +67,10 @@ public class SlaveRunnable implements Runnable {
 		this.callbackInterface = callbackInterface;
 	}
 
+	/**
+	 * Percorre pelo dicionario entre o limite fornecido buscando por palavras chaves e notificando ao mestre
+	 * quando uma palavra chave candidata eh encontrada
+	 */
 	@Override
 	public void run() {
 //		Abertura do utilitario de leitura de dicionario com fechamento automatico
@@ -86,6 +90,7 @@ public class SlaveRunnable implements Runnable {
 				Cipher cipher = Cipher.getInstance("Blowfish");
 				cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
 
+//				Caso nao caia no catch BadPaddingException, essa chave eh uma chave candidata
 				byte[] decrypted = cipher.doFinal(cipherText);
 
 				Guess guess = new Guess();
@@ -97,6 +102,8 @@ public class SlaveRunnable implements Runnable {
 				
 				System.out.println(slaveName + " -> " + key);
 
+//				Caso a mensagem descriptografada contenha a palavra conhecida, pode-se dizer que esta chave
+//				eh uma chave candidata, portanto sera enviada para o mestre como um chute.
 				if (decryptedStr.contains(knownTextStr)) {
 					try {
 						callbackInterface.foundGuess(slaveKey, attackNumber, dictionary.getLineNumber() - 1, guess);
@@ -111,7 +118,6 @@ public class SlaveRunnable implements Runnable {
 				checkPointAssistant.setCurrentIndex(dictionary.getLineNumber() - 1);
 			} catch (BadPaddingException e) {
 //				Chave errada, so atualiza o index
-//				notification("[" + dictionary.getLineNumber() + ", " + key + "]: Invalid Key");
 				checkPointAssistant.setCurrentIndex(dictionary.getLineNumber() - 1);
 			} catch (InvalidKeyException | IllegalBlockSizeException e) {
 //				Chave mal formatada ou .cipher nao multiplo de 8

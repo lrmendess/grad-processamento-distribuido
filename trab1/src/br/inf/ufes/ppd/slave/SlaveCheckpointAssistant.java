@@ -25,10 +25,18 @@ public class SlaveCheckpointAssistant implements Runnable {
 		this.currentIndex = -1; // Nenhuma palavra foi testado ainda
 	}
 
+	/**
+	 * Atualiza o index que o escravo esta lendo
+	 * 
+	 * @param currentIndex
+	 */
 	public void setCurrentIndex(int currentIndex) {
 		this.currentIndex = currentIndex;
 	}
 
+	/**
+	 * Sinaliza ao mestre que o escravo terminou a tarefa
+	 */
 	public void workFinished() {
 		try {
 			System.out.println("Partitions done!");
@@ -44,8 +52,12 @@ public class SlaveCheckpointAssistant implements Runnable {
 		}
 	}
 
+	/**
+	 * A cada 10 segundos, o escravo envia um checkpoint para o mestre
+	 */
 	@Override
 	public void run() {
+//		Este so para quando o termina de ler todas as suas particoes do dicionario
 		while (workFinished == false) {
 			try {
 				Thread.sleep(10000);
@@ -62,7 +74,7 @@ public class SlaveCheckpointAssistant implements Runnable {
 //				Falha na thread
 				e.printStackTrace();
 			} catch (RemoteException e) {
-				System.out.println("Master not found");
+				System.err.println("Master not found");
 				e.printStackTrace();
 			}
 		}

@@ -1,7 +1,6 @@
 package br.inf.ufes.ppd.master;
 
 import java.rmi.RemoteException;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,7 +8,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import br.inf.ufes.ppd.Guess;
 import br.inf.ufes.ppd.Master;
@@ -20,7 +22,7 @@ import br.inf.ufes.ppd.utils.Partition;
 
 public class MasterImpl implements Master {
 
-//	Diretorio do dicionario
+//	Diretorio base
 	private DictionaryReader dictionaryReader;
 //	Lista de escravos mapeadas pelo ID do escravo
 	private Map<UUID, NamedSlave> slaves;
@@ -29,85 +31,69 @@ public class MasterImpl implements Master {
 //	Lista de tempo de comunicacao dos escravos
 	private Map<UUID, Long> slavesTimer;
 
+	/**
+	 * Construtor do mestre, aqui tambem inicializamos uma thread para verificar quais escravos
+	 * do sistema ainda estao vivos. Essa thread eh disparada a cada 5 segundos.
+	 * 
+	 * @param dictionaryPath
+	 */
 	public MasterImpl(String dictionaryPath) {
 		this.dictionaryReader = new DictionaryReader(dictionaryPath);
 		this.slaves = Collections.synchronizedMap(new HashMap<>());
 		this.attacks = Collections.synchronizedMap(new HashMap<>());
 		this.slavesTimer = Collections.synchronizedMap(new HashMap<>());
 		
-//		So Deus pra entender isso aqui, to tentando...
-//		TODO otimizar essa metodo inteiro... Esta extremamente custoso!
-		new Thread() {
+//		Thread para procurar por escravos caidos e redistribuir suas particoes
+		Timer timer = new Timer();
+		TimerTask timerTask = new TimerTask() {
 			
 			@Override
 			public void run() {
-				while (true) {
-					try {
-						Thread.sleep(5000);
-						synchronized (slavesTimer) {
-//							Preenche uma lista com escravos que nao respondem ha mais de 20 + 1 (alpha) segundos
-							List<UUID> candidateTobeRemoved = new ArrayList<>();
-							slavesTimer.forEach((uuid, time) -> {
-								Long currentTimeMillis = Calendar.getInstance().getTimeInMillis();
+				synchronized (slavesTimer) {
+//					Preenche uma lista com ids de escravos que nao respondem ha mais de 20s (+alpha)
+					List<UUID> candidateToBeRemoved = slavesTimer.entrySet()
+							.stream()
+							.filter(entry -> (System.currentTimeMillis() - entry.getValue()) > 21000)
+							.map(Entry::getKey)
+							.collect(Collectors.toList());
+					
+//					Removemos da lista de tempo o uuid dos escravos que nao estao mais em operacao
+					candidateToBeRemoved.stream().forEach(uuid -> slavesTimer.remove(uuid));
+					
+//					Se o escravo nao responde a mais de 20 segundos e esta ocupado em algum ataque, ele caiu
+					List<UUID> removedSlaves = candidateToBeRemoved
+							.stream()
+							.filter(uuid -> slaveIsBusy(uuid))
+							.collect(Collectors.toList());
+					
+					synchronized (slaves) {
+//						Remocao da lista de escravos
+						removedSlaves.forEach(uuid -> slaves.remove(uuid));
+//						Agora vamos reescalonar as particoes dos escravos removidos para outros escravos
+						synchronized (attacks) {
+//							Para cada ataque, vamos recuperar as particoes que estao pendentes
+							attacks.forEach((attackNumber, attack) -> {
+								byte[] cipherText = attack.getCipherText();
+								byte[] knownText = attack.getKnownText();
 								
-								if ((currentTimeMillis - time) > 21000) {
-									candidateTobeRemoved.add(uuid);
-								}
-							});
-							
-//							Filtra os escravos que nao respondem a mais de 20 segundos pq ja terminaram seu servico
-//							normalmente
-							List<UUID> removedSlaves = new ArrayList<>();
-							synchronized (attacks) {
-								candidateTobeRemoved.forEach(uuid -> {
-									boolean busySlave = attacks.entrySet()
-											.stream()
-											.anyMatch(entry -> {
-												return entry.getValue().hasSlave(uuid);
-											});
-									
-//									Se o escravo nao responde a mais de 20 segundos e esta ocupado em algum ataque
-//									significa que ele caiu e esta pendente por ai...
-									if (busySlave) {
-										removedSlaves.add(uuid);
-										slavesTimer.remove(uuid);
-//									Mas se ele nao esta ocupado, quer dizer que terminou seu servico
-									} else {
-										slavesTimer.remove(uuid);
-									}
+//								Recuperamos todas as particoes dos escravos caidos
+								List<Partition> recoveredPartitions = attack.slavesPartitions(removedSlaves);
+								
+//								Para cada particao recuperada, vamos quebra-la e distribuir para os escravos atacarem
+								recoveredPartitions.forEach(partition ->  {
+									List<Partition> redistributedPartition = partition.shatter(slaves.size());
+									attack(cipherText, knownText, attackNumber, redistributedPartition);
 								});
-							}
-							
-							if (!removedSlaves.isEmpty()) {
-//								Agora vamos reescalonar as particoes dos escravos removidos para outros escravos
-								synchronized (slaves) {
-									removedSlaves.forEach(uuid -> {
-										slaves.remove(uuid);
-									});
-
-									synchronized (attacks) {
-										attacks.forEach((attackNumber, attack) -> {
-											List<Partition> recoveredPartitions = attack.slavesPartitions(removedSlaves);
-											System.out.println("Recovered partitions: " + recoveredPartitions);
-											recoveredPartitions.forEach(partition -> {
-												System.out.println("Available slaves: " + slaves.size());
-												System.out.println("Distributed partition " + partition.toPartitions(slaves.size()));
-												attack(attack.getCipherText(), attack.getKnownText(), attackNumber,
-														partition.toPartitions(slaves.size()));
-											});
-											attack.removeSlaves(removedSlaves);
-										});
-									}
-								}
-							}
+												
+//								Removemos os escravos dos ataques que eles estavam participando antes de cair
+								attack.removeSlaves(removedSlaves);
+							});
 						}
-					} catch (InterruptedException e) {
-						e.printStackTrace();
 					}
 				}
 			};
-			
-		}.start();
+		};
+		timer.schedule(timerTask, 5000, 5000);
 	}
 
 	@Override
@@ -128,7 +114,6 @@ public class MasterImpl implements Master {
 		}
 	}
 
-//	FIXME onde isso sera utilizado?
 	@Override
 	public void removeSlave(UUID slaveKey) throws RemoteException {
 		synchronized (slaves) {
@@ -142,26 +127,34 @@ public class MasterImpl implements Master {
 			throws RemoteException {
 //		Para um determinado ataque, apenas iremos adicinar um chute a sua lista de chutes
 		attacks.get(attackNumber).addGuess(guess);
+
+//		Impressao do chute recebido contendo nome do escravo, numero do ataque e indice lido
+		System.out.println("Callback received [" + slaves.get(slaveKey).getName() + ", " + attackNumber + ", "
+				+ currentIndex + "]: " + dictionaryReader.readLine((int) currentIndex));
 	}
 
 	@Override
 	public void checkpoint(UUID slaveKey, int attackNumber, long currentIndex) throws RemoteException {
+//		Atualizacao do indica da particao em que um escravo esta processando
+		attacks.get(attackNumber).updatePartition(slaveKey, (int) currentIndex);
+		
 //		Caso o escravo que enviou o checkpoint esteja na lista de tempo de resposta de escravos,
 //		iremos alterar o valor de sua resposta para o tempo mais atual
 		synchronized (slavesTimer) {
-			if (!slavesTimer.containsKey(slaveKey)) {
-				return;
-			}
+//			Se depois da atualizacao da particao o escravo nao estiver em nenhum ataque, significa que ele
+//			terminou todas as suas tarefas e pode ser removido do timer
+			boolean busySlave = slaveIsBusy(slaveKey);
 			
-			Long currentTimeInMillis = Calendar.getInstance().getTimeInMillis();
-			slavesTimer.put(slaveKey, currentTimeInMillis);
+			if (busySlave) {
+				slavesTimer.put(slaveKey, System.currentTimeMillis());
+			} else {
+				slavesTimer.remove(slaveKey);
+			}
 		}
-		
-//		Atualizacao do indica da particao em que um escravo esta processando
-		attacks.get(attackNumber).updatePartition(slaveKey, (int) currentIndex);
 
-		System.out.println("Checkpoint received [" + slaves.get(slaveKey).getName() + ", " + currentIndex + "]: "
-				+ dictionaryReader.readLine((int) currentIndex));
+//		Impressao do checkpoint recebido contendo nome do escravo, numero do ataque e indice lido
+		System.out.println("Checkpoint received [" + slaves.get(slaveKey).getName() + ", " + attackNumber + ", "
+				+ currentIndex + "]: " + dictionaryReader.readLine((int) currentIndex));
 	}
 
 	@Override
@@ -221,6 +214,15 @@ public class MasterImpl implements Master {
 		return returnedGuesses;
 	}
 	
+	/**
+	 * Funcao para distribuir uma lista de particoes para os escravos registrados no mestre.
+	 * Espera-se que a quantidade de particoes seja igual a quantidade de escravos no sistema.
+	 * 
+	 * @param cipherText
+	 * @param knownText
+	 * @param attackNumber
+	 * @param partitions
+	 */
 	private void attack(byte[] cipherText, byte[] knownText, int attackNumber, List<Partition> partitions) {
 //		Iteracao pelas particoes a serem distribuidas para os escravos
 		Iterator<Partition> partitionsForSlaves = partitions.iterator();
@@ -247,15 +249,35 @@ public class MasterImpl implements Master {
 				slave.startSubAttack(cipherText, knownText, partition.getStart(), partition.getEnd(), attackNumber,
 						this);
 			} catch (RemoteException e) {
-//				Escravo com problemas, reescalonar sua tarefa?
+//				Escravo com problemas, reescalonar sua tarefa??
 //				Sua ausencia so sera notada no momento que o timer passar por ele
 			}
 			
-//			Como esse escravo comecou um ataque, ele sera adicionado na lista de tempo de comunicacao dos escravos
+//			Um escravo que ate entao nao tinha comecado nenhum ataque, sera registrado no temporizados
+//			de checkpoint dos escravos, mas caso ele ja estava no sistema, nao faremos nada.
 			synchronized (slavesTimer) {
-				slavesTimer.put(slaveKey, Calendar.getInstance().getTimeInMillis());
+				if (!slavesTimer.containsKey(slaveKey)) {
+					slavesTimer.put(slaveKey, Calendar.getInstance().getTimeInMillis());
+				}
 			}
 		}
 	}
-
+	
+	/**
+	 * Verifica se um dado escravo (apenas id) esta ocupado em pelo menos um ataque.
+	 * Este metodo nao garante que um escravo esteja vivo, mas sim se ele esta alocado em algum ataques
+	 * 
+	 * @param slaveKey
+	 * @return
+	 */
+	private boolean slaveIsBusy(UUID slaveKey) {
+		boolean busySlave = attacks.entrySet()
+				.stream()
+				.anyMatch(entry -> {
+					return entry.getValue().hasSlave(slaveKey);
+				});
+		
+		return busySlave;
+	}
+	
 }

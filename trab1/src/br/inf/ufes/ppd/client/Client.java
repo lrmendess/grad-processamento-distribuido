@@ -19,26 +19,31 @@ public class Client {
 			
 			byte[] encryptedMessage = null;
 			
-			File file = new File(args[0]);
+			File cipherFile = new File(args[0]);
 			
-			if (file.exists()) {
-				encryptedMessage = ByteArray.readFile(file);
-			
-			} else {
+//			Cria um arquivo com bytes aleatorios caso o arquivo especificado pelo cliente nao exista
+			if (!cipherFile.exists()) {
 				if (args.length == 3) {
 					encryptedMessage = ByteArray.createRandomByteArray(Integer.parseInt(args[2]));
 				} else {
 					encryptedMessage = ByteArray.createRandomByteArray(1000, 100001);
 				}
 				
-				ByteArray.createFile(file, encryptedMessage);
+				ByteArray.createFile(cipherFile, encryptedMessage);
+			} else {
+				encryptedMessage = ByteArray.readFile(cipherFile);
 			}
 			
+//			Solicita um ataque ao mestre
 			Guess[] guesses = master.attack(encryptedMessage, args[1].getBytes());
 			
-			System.out.println("[Guesses]");
+//			Para cada chute retornado, criaremos um arquivo <chute>.msg com o conteudo descriptografado dentro
 			for (Guess guess : guesses) {
-				System.out.println(guess.getKey());
+				File file = new File(guess.getKey() + ".msg");
+				
+				if (!file.exists()) {
+					ByteArray.createFile(file, guess.getMessage());
+				}
 			}
 			
 		} catch (IOException e) {
@@ -47,7 +52,7 @@ public class Client {
 			
 		} catch (NotBoundException e) {
 //			O Mestre nao foi encontrado no Registry
-			e.printStackTrace();
+			System.err.println("O servico encontra-se indisponivel no momento");
 		}
 
 	}

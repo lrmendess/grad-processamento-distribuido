@@ -24,25 +24,28 @@ public class SlaveHeartbeatAssistant implements Runnable {
 		this.registry = registry;
 	}
 
+	/**
+	 * Procura uma referencia para o mestre e envia heartbeats a cada 30 segundos, ou seja,
+	 * a cada 30 segundos o escravos se readiciona na lista de escravos do mestre.
+	 */
 	@Override
 	public void run() {
 //		Fica aguardando o mestre estar disponivel
-		notification("Looking for a Master reference...");
+		System.out.println("Looking for a Master reference...");
 		searchMaster(true);
-		
-		notification("Master reference found");
+		System.out.println("Master reference found");
 
 		while (true) {
 			try {
 				remoteMaster.addSlave(remoteSlave, slaveName, slaveKey);
 				Thread.sleep(30000);
-				notification("Heartbeat Sent");
+				System.out.println("Heartbeat Sent");
 
 			} catch (RemoteException e) {
 //				Houve algo de errado com o mestre quando o escravo tentou se "re-registrar",
 //				sera feita uma tentativa de busca de uma nova referencia para ele no registry
 //				uma unica vez
-				notification("Looking for a new Master reference...");
+				System.out.println("Looking for a new Master reference...");
 				searchMaster(false);
 
 			} catch (InterruptedException e) {
@@ -57,7 +60,7 @@ public class SlaveHeartbeatAssistant implements Runnable {
 	 * 
 	 * @param true para buscar o mestre indeterminadamente, false para buscar apenas uma vez
 	 */
-	private void searchMaster(boolean persist) {
+	private void searchMaster(boolean insist) {
 		do {
 			try {
 				remoteMaster = (Master) registry.lookup("mestre");
@@ -71,12 +74,7 @@ public class SlaveHeartbeatAssistant implements Runnable {
 //				O Registry apresentou problemas, o que deve ser feito? (Duvida)
 				e.printStackTrace();
 			}
-		} while (persist);
-	}
-
-//	Funcao de debug (deve se removida futuramente)
-	private void notification(String msg) {
-		System.out.println("Slave[name=" + slaveName + "]: " + msg);
+		} while (insist);
 	}
 	
 }

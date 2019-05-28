@@ -18,8 +18,8 @@ public class Attack implements Runnable {
 
 	private final int attackNumber;
 	
-	private byte[] cipherText;
-	private byte[] knownText;
+	private final byte[] cipherText;
+	private final byte[] knownText;
 	
 	private Map<UUID, Set<Partition>> slavesPartitions;
 	private List<Guess> guesses;
@@ -35,7 +35,24 @@ public class Attack implements Runnable {
 	public int getAttackNumber() {
 		return attackNumber;
 	}
+
+	public byte[] getCipherText() {
+		return cipherText;
+	}
+
+	public byte[] getKnownText() {
+		return knownText;
+	}
 	
+	/**
+	 * Dado um identificador de escravo e uma particao, iremos adicionar esse escravo na lista
+	 * de escravo desse ataque junto da particao a qual ele foi designado a trabalhar, mas caso
+	 * este ja esteja atuando nesse ataque, iremos acrescentar a particao em seu conjunto de particoes
+	 * desse ataque.
+	 * 
+	 * @param slaveKey
+	 * @param partition
+	 */
 	public void addPartition(UUID slaveKey, Partition partition) {
 		synchronized (slavesPartitions) {
 //			Caso o escravo ja esteja cadastrado, iremos apenas acrescentar uma particao em seu conjunto
@@ -52,6 +69,15 @@ public class Attack implements Runnable {
 		}
 	}
 	
+	/**
+	 * Dado um identificador de escravo e o ultimo indice que ele notificou ao mestre, iremos procurar
+	 * pela particao a qual este index faz parte e iremos atualizar seu valor inicial, mas caso o ultimo
+	 * index lido pelo escravo seja o fim da particao, iremos remove-la do seu conjunto de particoes e, se
+	 * o escravo em questao nao tiver mais nenhuma particao para operar, removemos ele desse ataque.
+	 * 
+	 * @param slaveKey
+	 * @param currentIndex
+	 */
 	public void updatePartition(UUID slaveKey, int currentIndex) {
 		synchronized (slavesPartitions) {
 //			Caso o escravo nao esteja na nossa lista, ou seu index esta em -1 (sinal de que ele nao leu nada
@@ -67,43 +93,61 @@ public class Attack implements Runnable {
 				.filter(partition -> partition.isBetweenTheRange(currentIndex))
 				.findAny();
 			
-			if (existingPartition.isPresent()) {
-				Partition partition = existingPartition.get();
-//				Se o meu indice atual for o ultimo indice do array, significa que indice + 1 = tamanho do array,
-//				logo essa particao foi finalizada e ela pode ser removida do conjunto de particoes do escravo
-				if (partition.getEnd() == (currentIndex + 1)) {
-					Set<Partition> slavePartitions = slavesPartitions.get(slaveKey);
-					slavePartitions.remove(partition);
-//					Caso o conjunto de particoes do escravo esteja vazio, significa que seu papel foi cumprido
-//					nesse ataque, logo pode ser removido e liberado
-					if (slavePartitions.isEmpty()) {
-						slavesPartitions.remove(slaveKey);
-					}
-				} else {
-//					Com a particao nao terminada, iremos apenas atualizar seu indice de inicio
-					partition.setStart(currentIndex);
+			Partition partition = existingPartition.get();
+//			Se o meu indice atual for o ultimo indice do array, significa que indice + 1 = tamanho do array,
+//			logo essa particao foi finalizada e ela pode ser removida do conjunto de particoes do escravo
+			if (partition.getEnd() == (currentIndex + 1)) {
+				Set<Partition> slavePartitions = slavesPartitions.get(slaveKey);
+				slavePartitions.remove(partition);
+//				Caso o conjunto de particoes do escravo esteja vazio, significa que seu papel foi cumprido
+//				nesse ataque, logo pode ser removido e liberado
+				if (slavePartitions.isEmpty()) {
+					slavesPartitions.remove(slaveKey);
 				}
+			} else {
+//				Com a particao nao terminada, iremos apenas atualizar seu indice de inicio
+				partition.setStart(currentIndex);
 			}
 		}
 	}
 	
-//	Remove um escravo do mapa, consequentemente suas particoes vao junto
+	/**
+	 * Remove um escravo do mapa, consequentemente suas particoes vao junto
+	 *
+	 * @param slaveKey
+	 */
 	public void removeSlave(UUID slaveKey) {
 		synchronized (slavesPartitions) {
 			slavesPartitions.remove(slaveKey);
 		}
 	}
 	
+	/**
+	 * Verifica se um escravo esta trabalhando nesse ataque
+	 * 
+	 * @param slaveKey
+	 * @return
+	 */
 	public boolean hasSlave(UUID slaveKey) {
 		return slavesPartitions.containsKey(slaveKey);
 	}
 	
-//	Retorna o conjunto de particoes de um dado escravo
+	/**
+	 * Retorna o conjunto de particoes de um dado escravo
+	 * 
+	 * @param slaveKey
+	 * @return
+	 */
 	public Set<Partition> getPartitions(UUID slaveKey) {
 		return slavesPartitions.get(slaveKey);
 	}
 	
-//	Retorna todas as particoes dos escravos contidos na lista de entrada
+	/**
+	 * Retorna todas as particoes dos escravos contidos na lista de entrada
+	 *
+	 * @param slaves
+	 * @return
+	 */
 	public List<Partition> slavesPartitions(List<UUID> slaves) {
 		List<Partition> returnedPartitions = new ArrayList<>();
 		
@@ -116,7 +160,11 @@ public class Attack implements Runnable {
 		return returnedPartitions;
 	}
 	
-//	Remove todos os escravos da lista do mapa de escravos
+	/**
+	 * Remove todos os escravos da lista passada como parametro, do mapa de escravos
+	 * 
+	 * @param slaves
+	 */
 	public void removeSlaves(List<UUID> slaves) {
 		synchronized (slavesPartitions) {
 			slaves.forEach(uuid -> {
@@ -125,12 +173,20 @@ public class Attack implements Runnable {
 		}
 	}
 	
-	public void addGuess(Guess guess) {
-		synchronized (guesses) {
-			guesses.add(guess);
-		}
+	/**
+	 * Adiciona um chute ao ataque
+	 * 
+	 * @param guess
+	 */
+	public synchronized void addGuess(Guess guess) {
+		guesses.add(guess);
 	}
 	
+	/**
+	 * Retorna a lista de chutes do ataque
+	 * 
+	 * @return
+	 */
 	public List<Guess> guesses() {
 		return guesses;
 	}
@@ -141,9 +197,12 @@ public class Attack implements Runnable {
 		});
 	}
 	
+	/**
+	 * Enquanto nossa lista de particoes nao estiver vazia, continuaremos segurando o ataque
+	 * para o mestre nao finalizar e retornar nulo para o cliente
+	 */
 	@Override
 	public void run() {
-//		Enquanto houverem particoes a serem processadas, nosso ataque nao terminou
 		while (!emptyPartitions()) {
 			try {
 				Thread.sleep(1000);
@@ -153,18 +212,15 @@ public class Attack implements Runnable {
 		}
 	}
 	
+	/**
+	 * Verifica se nao existem escravos trabalhando nesse ataque
+	 * 
+	 * @return
+	 */
 	private boolean emptyPartitions() {
 		synchronized (slavesPartitions) {
 			return slavesPartitions.isEmpty();
 		}
-	}
-
-	public byte[] getCipherText() {
-		return cipherText;
-	}
-
-	public byte[] getKnownText() {
-		return knownText;
 	}
 	
 }

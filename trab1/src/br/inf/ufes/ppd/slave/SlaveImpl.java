@@ -20,20 +20,25 @@ public class SlaveImpl implements Slave {
 		this.baseDictionary = new DictionaryReader(dictionaryPath);
 	}
 
+	/**
+	 * A partir de uma copia do dicionario, o escravo ira varregar as palavras chaves dados indices inicial e final
+	 * buscando pela chave que consiga descriptografar o cipherText
+	 */
 	@Override
 	public void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
 			int attackNumber, SlaveManager callbackInterface) throws RemoteException {
 
 		DictionaryReader dictionary = new DictionaryReader(baseDictionary);
-
-//		Abertura do utilitario de leitura de dicionario com fechamento automatico
 		dictionary.setRange((int) initialWordIndex, (int) finalWordIndex);
 		dictionary.rewind();
 
+//		Inicializacao da thread que ira processar as informacoes e a passagem dos parametros necessarios
+//		para tal processamento
 		SlaveRunnable slaveRunnable = new SlaveRunnable(name, id);
 		slaveRunnable.setDictionary(dictionary);
 		slaveRunnable.setSubAttackParameters(cipherText, knownText, attackNumber, callbackInterface);
 		
+//		Tendo os dados em maos, pode iniciar a descriptografia
 		Thread thread = new Thread(slaveRunnable);
 		thread.start();
 	}

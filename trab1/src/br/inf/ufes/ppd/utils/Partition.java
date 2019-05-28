@@ -34,11 +34,23 @@ public class Partition {
 		this.end = end;
 	}
 	
+	/**
+	 * Verifica se um dado index esta dentro do intervalo da particao
+	 * 
+	 * @param index
+	 * @return
+	 */
 	public boolean isBetweenTheRange(int index) {
 		return (index >= start) && (index < end);
 	}
 	
-	public List<Partition> toPartitions(int numberOfPartitions) {
+	/**
+	 * Particiona uma particao em K particoes iguais
+	 * 
+	 * @param numberOfPartitions
+	 * @return
+	 */
+	public List<Partition> shatter(int numberOfPartitions) {
 		List<Partition> partitions = new ArrayList<>();
 
 		int partitionLength = (end - start) / numberOfPartitions;
@@ -63,6 +75,13 @@ public class Partition {
 		return partitions;
 	}
 	
+	/**
+	 * Avanca o ponteiro da particao a partir de um dado buffer
+	 * 
+	 * @param currentIndex
+	 * @param partitionLength
+	 * @return
+	 */
 	private int seek(int currentIndex, int partitionLength) {
 		int pointer = currentIndex + partitionLength;
 		
