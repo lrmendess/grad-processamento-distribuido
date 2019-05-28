@@ -119,18 +119,16 @@ public class MasterImpl implements Master {
 	@Override
 	public void addSlave(Slave slave, String slaveName, UUID slaveKey) throws RemoteException {
 		synchronized (slaves) {
-//			Criacao e um escravo do tipo NamedSlave para evitar de usar Pair<A, B>
-			NamedSlave namedSlave = new NamedSlave(slave, slaveName, slaveKey);
-
-//			Caso a chave ja existe no mapa de escravos, indica que ele ja esta cadastrado, portanto
+//			Caso a chave ja exista no mapa de escravos, indica que ele ja esta cadastrado, portanto
 //			sua adicao significa que ele enviou um heartbeat
-			if (slaves.containsKey(slaveKey)) {
-				System.out.println("Heartbeat Received [" + slaveName + "]");
-			} else {
-//				Caso contrario, sera adicionado como mu novo escravo
+			if (!slaves.containsKey(slaveKey)) {
+				slaves.put(slaveKey, new NamedSlave(slave, slaveName, slaveKey));
 				System.out.println("Registered [" + slaveName + "]");
-				slaves.put(slaveKey, namedSlave);
+			} else {
+				System.out.println("Heartbeat Received [" + slaveName + "]");
 			}
+			
+			NamedSlave namedSlave = slaves.get(slaveKey);
 			
 			Long currentTimeInMillis = System.currentTimeMillis();
 			namedSlave.setHeartbeatTime(currentTimeInMillis);
