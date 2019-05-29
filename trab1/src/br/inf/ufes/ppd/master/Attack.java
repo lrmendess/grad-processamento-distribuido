@@ -143,37 +143,6 @@ public class Attack implements Runnable {
 	}
 	
 	/**
-	 * Retorna todas as particoes dos escravos contidos na lista de entrada
-	 *
-	 * @param slaves
-	 * @return
-	 */
-	public List<Partition> slavesPartitions(List<UUID> slaves) {
-		List<Partition> returnedPartitions = new ArrayList<>();
-		
-		synchronized (slavesPartitions) {
-			slaves.forEach(uuid -> {
-				returnedPartitions.addAll(slavesPartitions.get(uuid));
-			});
-		}
-		
-		return returnedPartitions;
-	}
-	
-	/**
-	 * Remove todos os escravos da lista passada como parametro, do mapa de escravos
-	 * 
-	 * @param slaves
-	 */
-	public void removeSlaves(List<UUID> slaves) {
-		synchronized (slavesPartitions) {
-			slaves.forEach(uuid -> {
-				slavesPartitions.remove(uuid);
-			});
-		}
-	}
-	
-	/**
 	 * Adiciona um chute ao ataque
 	 * 
 	 * @param guess
