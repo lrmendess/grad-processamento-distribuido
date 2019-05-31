@@ -24,12 +24,15 @@ public class Attack implements Runnable {
 	private Map<UUID, Set<Partition>> slavesPartitions;
 	private List<Guess> guesses;
 	
+	private boolean forcedTermination;
+	
 	public Attack(byte[] cipherText, byte[] knownText) {
 		this.attackNumber = Sequence.nextValue();
 		this.cipherText = cipherText;
 		this.knownText = knownText;
 		this.slavesPartitions = Collections.synchronizedMap(new HashMap<>());
 		this.guesses = Collections.synchronizedList(new ArrayList<>());
+		this.forcedTermination = false;
 	}
 
 	public int getAttackNumber() {
@@ -167,12 +170,24 @@ public class Attack implements Runnable {
 	}
 	
 	/**
+	 * Finaliza o ataque forcadamente
+	 */
+	public void forcedTermination() {
+		slavesPartitions.clear();
+		forcedTermination = true;
+	}
+	
+	public boolean wasForcedToTerminate() {
+		return forcedTermination;
+	}
+	
+	/**
 	 * Enquanto nossa lista de particoes nao estiver vazia, continuaremos segurando o ataque
 	 * para o mestre nao finalizar e retornar nulo para o cliente
 	 */
 	@Override
 	public void run() {
-		while (!emptyPartitions()) {
+		while (!emptyPartitions() && !forcedTermination) {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
