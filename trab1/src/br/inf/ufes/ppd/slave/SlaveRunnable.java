@@ -15,7 +15,6 @@ import javax.crypto.spec.SecretKeySpec;
 import br.inf.ufes.ppd.Guess;
 import br.inf.ufes.ppd.SlaveManager;
 import br.inf.ufes.ppd.utils.DictionaryReader;
-import br.inf.ufes.ppd.utils.Partition;
 
 public class SlaveRunnable implements Runnable {
 
@@ -23,8 +22,6 @@ public class SlaveRunnable implements Runnable {
 	private UUID slaveKey;
 
 	private DictionaryReader dictionary;
-
-	private Partition partition;
 
 	private byte[] cipherText;
 	private byte[] knownText;
@@ -50,14 +47,6 @@ public class SlaveRunnable implements Runnable {
 
 	public DictionaryReader getDictionary() {
 		return dictionary;
-	}
-
-	public Partition getPartition() {
-		return partition;
-	}
-
-	public void setPartition(Partition partition) {
-		this.partition = partition;
 	}
 
 	public void setSubAttackParameters(byte[] cipherText, byte[] knownText, int attackNumber,
@@ -100,7 +89,7 @@ public class SlaveRunnable implements Runnable {
 				String decryptedStr = new String(decrypted);
 				String knownTextStr = new String(knownText);
 				
-				System.out.println(slaveName + " -> " + key);
+				System.out.println(key);
 
 //				Caso a mensagem descriptografada contenha a palavra conhecida, pode-se dizer que esta chave
 //				eh uma chave candidata, portanto sera enviada para o mestre como um chute.
@@ -137,7 +126,7 @@ public class SlaveRunnable implements Runnable {
 		try {
 			callbackInterface.checkpoint(slaveKey, attackNumber, dictionary.getLineNumber());
 		} catch (RemoteException e) {
-			System.err.println("The master fell during the attack");
+			System.err.println("The master fell during the attack (SlaveRunnable)");
 		}
 	}
 

@@ -44,7 +44,7 @@ public class SlaveCheckpointAssistant extends TimerTask {
 			System.out.println("Checkpoint sent <" + currentIndex + ">");
 			callbackInterface.checkpoint(slaveId, attackNumber, currentIndex);
 		} catch (RemoteException e) {
-			System.err.println("The master fell during the attack");
+			System.err.println("The master fell during the attack (SlaveCheckpointAssistant)");
 		}
 	}
 	

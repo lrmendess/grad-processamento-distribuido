@@ -168,18 +168,15 @@ public class Attack implements Runnable {
 		return guesses;
 	}
 	
-	public void printPartitions() {
-		slavesPartitions.forEach((uuid, partitions) -> {
-			System.out.println(uuid + ": " + partitions);
-		});
-	}
-	
 	/**
 	 * Finaliza o ataque forcadamente
 	 */
 	public void forcedTermination() {
-		slavesPartitions.clear();
 		forcedTermination = true;
+		slavesPartitions.clear();
+		synchronized (this) {
+			this.notify();	
+		}
 	}
 	
 	public boolean wasForcedToTerminate() {
@@ -192,12 +189,23 @@ public class Attack implements Runnable {
 	 */
 	@Override
 	public void run() {
-		while (!emptyPartitions() && !forcedTermination) {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+		try {
+			while (!emptyPartitions() && !forcedTermination) {
+				synchronized (this) {
+					this.wait();	
+				}
 			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Avisa ao ataque para ele verificar se ja pode finalizar
+	 */
+	public void notifyAttack() {
+		synchronized (this) {
+			this.notify();	
 		}
 	}
 	

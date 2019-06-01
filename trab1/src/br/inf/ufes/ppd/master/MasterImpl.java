@@ -82,14 +82,14 @@ public class MasterImpl implements Master {
 							slaves.remove(uuid);
 						});
 						
-						for (UUID uuid : candidatesToBeRemoved) {
+						candidatesToBeRemoved.forEach(uuid -> {
 							try {
 								removeSlave(uuid);
 							} catch (RemoteException e) {
-								System.err.println("ME DERRUBARAM AQUI OW!");
+								System.err.println("I died");
 								e.printStackTrace();
 							}
-						}
+						});
 					}
 				}
 			};
@@ -186,13 +186,14 @@ public class MasterImpl implements Master {
 	@Override
 	public void checkpoint(UUID slaveKey, int attackNumber, long currentIndex) throws RemoteException {
 		Long currentTimeInMillis = System.currentTimeMillis();
-		
 //		Caso o escravo que enviou o checkpoint esteja na lista de tempo de resposta de escravos,
 //		iremos alterar o valor de sua resposta para o tempo mais atual
 		synchronized (slavesTimer) {
 //			Atualizacao do indica da particao em que um escravo esta processando
-			attacks.get(attackNumber).updatePartition(slaveKey, (int) currentIndex);
-			
+			Attack attack = attacks.get(attackNumber);
+			attack.updatePartition(slaveKey, (int) currentIndex);
+			attack.notifyAttack();
+
 //			Evita que algum atrasadinho (+20s) atualize seu tempo, ele sera removido pela timer thread
 			boolean isPresent = slavesTimer.containsKey(slaveKey);
 			
@@ -201,17 +202,17 @@ public class MasterImpl implements Master {
 			}
 			
 			Long oldTimeInMillis = slavesTimer.get(slaveKey);
-			
+
 //			Se depois da atualizacao da particao o escravo nao estiver em nenhum ataque, significa que ele
 //			terminou todas as suas tarefas e pode ser removido do timer
 			boolean busySlave = slaveIsBusy(slaveKey);
-			
+
 			if (busySlave) {
 				slavesTimer.put(slaveKey, currentTimeInMillis);
 			} else {
 				slavesTimer.remove(slaveKey);
 			}
-
+			
 			Long responseIntervalInMillis = currentTimeInMillis - oldTimeInMillis;
 
 //			Impressao do checkpoint recebido contendo nome do escravo, numero do ataque e indice lido
@@ -224,24 +225,27 @@ public class MasterImpl implements Master {
 	public Guess[] attack(byte[] cipherText, byte[] knownText) throws RemoteException {
 //		Incializa uma classe de ataque com os dados de entrada do cliente
 		Attack attack = new Attack(cipherText, knownText);
+		
 //		O numero de ataque eh gerado automaticamente pela classe Attack, logo basta recupera-lo
 		Integer attackNumber = attack.getAttackNumber();
 
+//		Adicionamos esse ataque ao mapa de ataques que estao sendo gerenciados pelo mestre
+		synchronized (attacks) {
+			attacks.put(attackNumber, attack);				
+		}
+		
 		synchronized (slaves) {
+//			Sem escravos, sem ataque
 			if (slaves.size() == 0) {
-//				Se o ataque foi forcado a terminar antes mesmo de comecar (slaves.size() == 0),
-//				retornamos um erro
 				return failure();
 			}
-//			Adicionamos esse ataque ao mapa de ataques que estao sendo gerenciados pelo mestre
-			attacks.put(attackNumber, attack);
-
-//			Particionamento do dicionario de acordo com o numero de escravos ligados ao mestre
-			List<Partition> partitions = new DictionaryReader(dictionaryReader).toPartitions(slaves.size());
+			
+			List<Partition> partitions  = new DictionaryReader(dictionaryReader).toPartitions(slaves.size());
+			
 //			Inicia um ataque
 			attack(cipherText, knownText, attackNumber, partitions);
 		}
-
+		
 //		Inicializacao da thread que serve para segurar o mestre ate que o ataque termine
 		Thread attackThread = new Thread(attack);
 		attackThread.start();
@@ -281,60 +285,67 @@ public class MasterImpl implements Master {
 	 * @param partitions
 	 */
 	private void attack(byte[] cipherText, byte[] knownText, int attackNumber, List<Partition> partitions) {
-		synchronized (slaves) {
-//			Recuperacao do ataque de interesse
-			Attack attack = attacks.get(attackNumber);
-			
-//			Se nao ha mais escravos, o sistema nao pode atender mais ninguem e, caso as particoes estejam
-//			vazias, significa que nao foi possivel dividi-las entre os escravos
-			if (slaves.size() == 0 || partitions.isEmpty()) {
-				attack.forcedTermination();
-				return;
-			}
-			
-//			Iteracao pelas particoes a serem distribuidas para os escravos
-			Iterator<Partition> partitionsForSlaves = partitions.iterator();
-			
-			List<Entry<UUID, NamedSlave>> slavesList = new ArrayList<>(slaves.entrySet());
-	
-//			Vamos varrer a lista de escravos e entregar uma (ou mais) particoes para cada escravo
-//			Com a finalidade de evitar eventuais particoes pendentes, fazemos uma iteracao circular
-//			pela lista de escravos ate que as particoes terminem.
-			int i = 0;
-			while (partitionsForSlaves.hasNext()) {
-				Entry<UUID, NamedSlave> entry = slavesList.get(i++ % slaves.size());
-				
-				UUID slaveKey = entry.getKey();
-				Slave slave = entry.getValue().getSlave();
-				
-				Partition partition = partitionsForSlaves.next();
-//				Inserimos na classe Attack que o escravo X esta responsavel pela particao P
-				attack.addPartition(slaveKey, partition);
-	
-				try {
-//					Tendo o um escravo e sua particao, o sub-ataque eh iniciado
-					slave.startSubAttack(cipherText, knownText, partition.getStart(), partition.getEnd(), attackNumber,
-							this);
-	
-//					Um escravo que ate entao nao tinha comecado nenhum ataque, sera registrado no temporizados
-//					de checkpoint dos escravos, mas caso ele ja estava no sistema, nao faremos nada.
-					synchronized (slavesTimer) {
+		
+		synchronized (slavesTimer) {
+			synchronized (slaves) {
+				Attack attack = attacks.get(attackNumber);
+		
+//				Se nao ha mais escravos, o sistema nao pode atender mais ninguem e, caso as particoes estejam
+//				vazias, significa que nao foi possivel dividi-las entre os escravos
+				if (slaves.size() == 0 || partitions.isEmpty()) {
+					attack.forcedTermination();
+					return;
+				}
+		
+//				Iteracao pelas particoes a serem distribuidas para os escravos
+				Iterator<Partition> partitionsForSlaves = partitions.iterator();
+		
+				List<Entry<UUID, NamedSlave>> slavesList = new ArrayList<>(slaves.entrySet());
+
+//				Vamos varrer a lista de escravos e entregar uma (ou mais) particoes para cada escravo
+//				Com a finalidade de evitar eventuais particoes pendentes, fazemos uma iteracao circular
+//				pela lista de escravos ate que as particoes terminem.
+				int i = 0;
+				while (partitionsForSlaves.hasNext()) {
+					Entry<UUID, NamedSlave> entry = slavesList.get(i++ % slaves.size());
+
+					UUID slaveKey = entry.getKey();
+					Slave slave = entry.getValue().getSlave();
+
+					Partition partition = partitionsForSlaves.next();
+//					Inserimos na classe Attack que o escravo X esta responsavel pela particao P
+					attack.addPartition(slaveKey, partition);
+
+					try {
+//						Tendo o um escravo e sua particao, o sub-ataque eh iniciado
+						slave.startSubAttack(cipherText, knownText, partition.getStart(), partition.getEnd(),
+								attackNumber, this);
+
+//						Um escravo que ate entao nao tinha comecado nenhum ataque, sera registrado no temporizados
+//						de checkpoint dos escravos, mas caso ele ja estava no sistema, nao faremos nada.
 						boolean isPresent = slavesTimer.containsKey(slaveKey);
-						
+
 						if (!isPresent) {
 							slavesTimer.put(slaveKey, Calendar.getInstance().getTimeInMillis());
 						}
+						
+					} catch (RemoteException e) {
+//						Escravo com problemas, reescalonamento forcado!
+						try {
+							removeSlave(slaveKey);
+						} catch (RemoteException e1) {
+							System.err.println("I died");
+							e1.printStackTrace();
+						}
+						
+//						Vamos redistribuir as particoes restantes, incluindo a particao esse escravo que apresentou
+//						problemas durante a chamada do metodo subattack
+						List<Partition> remainingPartitions = new ArrayList<Partition>();
+						partitionsForSlaves.forEachRemaining(remainingPartitions::add);
+						remainingPartitions.add(partition);
+						
+						attack(cipherText, knownText, attackNumber, remainingPartitions);
 					}
-				} catch (RemoteException e) {
-//					Escravo com problemas, reescalonamento forcado!
-//					Pode entrar num loop infinito caso nao tenham mais escravos
-					try {
-						removeSlave(slaveKey);
-					} catch (RemoteException e1) {
-						System.err.println("Dei uma leve falecida");
-						e1.printStackTrace();
-					}
-					attack(cipherText, knownText, attackNumber, partitions);
 				}
 			}
 		}
@@ -350,9 +361,7 @@ public class MasterImpl implements Master {
 	private boolean slaveIsBusy(UUID slaveKey) {
 		boolean busySlave = attacks.entrySet()
 				.stream()
-				.anyMatch(entry -> {
-					return entry.getValue().hasSlave(slaveKey);
-				});
+				.anyMatch(entry -> entry.getValue().hasSlave(slaveKey));
 		
 		return busySlave;
 	}
@@ -363,7 +372,7 @@ public class MasterImpl implements Master {
 	 * @return
 	 */
 	private Guess[] failure() {
-		String errorMessage = "Infelizmente nao temos mais escravos disponiveis. Senta e chora!";
+		String errorMessage = "Unfortunately no more slaves are available. Sit down and cry!";
 		
 		Guess guess = new Guess();
 		guess.setKey("NoSlavesAvailableError");

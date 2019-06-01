@@ -36,10 +36,9 @@ public class SlaveServer {
 					try {
 						Master master = (Master) registry.lookup("mestre");
 						master.removeSlave(slaveKey);
-					} catch (RemoteException e) {
-						e.printStackTrace();
-					} catch (NotBoundException e) {
-						e.printStackTrace();
+						System.out.println("Bye!");
+					} catch (RemoteException | NotBoundException e) {
+						System.out.println("The master fell, bye!");
 					}
 				}
 			});
