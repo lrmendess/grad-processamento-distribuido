@@ -215,9 +215,8 @@ public class MasterImpl implements Master {
 			Long responseIntervalInMillis = currentTimeInMillis - oldTimeInMillis;
 
 //			Impressao do checkpoint recebido contendo nome do escravo, numero do ataque e indice lido
-			System.out.println("Checkpoint received [" + slaves.get(slaveKey).getName() + ", " + attackNumber + ", "
-					+ currentIndex + "]: " + dictionaryReader.readLine((int) currentIndex) + ", "
-					+ responseIntervalInMillis + "ms");
+			System.out.println("Checkpoint received [Name=" + slaves.get(slaveKey).getName() + ", AttackNumber="
+					+ attackNumber + ", CurrentIndex=" + currentIndex + "]: " + responseIntervalInMillis + "ms");
 		}
 	}
 

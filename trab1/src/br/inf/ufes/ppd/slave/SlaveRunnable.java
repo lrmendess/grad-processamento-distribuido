@@ -3,6 +3,7 @@ package br.inf.ufes.ppd.slave;
 import java.rmi.RemoteException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Timer;
 import java.util.UUID;
 
 import javax.crypto.BadPaddingException;
@@ -74,12 +75,11 @@ public class SlaveRunnable implements Runnable {
 	@Override
 	public void run() {
 //		Abertura do utilitario de leitura de dicionario com fechamento automatico
-		SlaveCheckpointAssistant checkPointAssistant = new SlaveCheckpointAssistant(slaveName, slaveKey,
-				attackNumber, callbackInterface);
-
-		Thread checkPointAssistantThread = new Thread(checkPointAssistant);
-		checkPointAssistantThread.start();
-
+		SlaveCheckpointAssistant checkPointAssistant = new SlaveCheckpointAssistant(slaveName, slaveKey, attackNumber,
+				callbackInterface);
+		Timer checkPointAssistantTimer = new Timer();
+		checkPointAssistantTimer.schedule(checkPointAssistant, 10000, 10000);
+		
 //		Enquanto houver alguma coisa para ler no dicionario...
 		while (dictionary.ready()) {
 			String key = dictionary.readLine();
@@ -127,8 +127,18 @@ public class SlaveRunnable implements Runnable {
 				e.printStackTrace();
 			}
 		}
+		
+		checkPointAssistantTimer.cancel();
+		checkPointAssistantTimer.purge();
 
-		checkPointAssistant.workFinished();
+		System.out.println("Partition has been terminated <" + dictionary.getStart() + ", "
+				+ dictionary.getEnd() + ">");
+		
+		try {
+			callbackInterface.checkpoint(slaveKey, attackNumber, dictionary.getLineNumber());
+		} catch (RemoteException e) {
+			System.err.println("The master fell during the attack");
+		}
 	}
 
 }

@@ -90,16 +90,24 @@ public class Attack implements Runnable {
 			}
 			
 //			Recuperaca da particao do escravo em que o indice dado como parametro esta dentro
-//			do raio da particao (o certo eh ter apenas uma)
+//			do raio da particao ou o escravo finalizou o trabalho (o certo eh ter apenas uma)
 			Optional<Partition> existingPartition = slavesPartitions.get(slaveKey)
 				.stream()
-				.filter(partition -> partition.isBetweenTheRange(currentIndex))
+				.filter(partition -> {
+//					Se estiver dentro do raio, iremos atualizar a particao
+					if (partition.isBetweenTheRange(currentIndex)) {
+						partition.setStart(currentIndex);
+						return false;
+//					Se for o fim da particao, iremos obte-la para remocao
+					} else {
+						return partition.getEnd() == currentIndex;
+					}
+				})
 				.findAny();
 			
-			Partition partition = existingPartition.get();
-//			Se o meu indice atual for o ultimo indice do array, significa que indice + 1 = tamanho do array,
-//			logo essa particao foi finalizada e ela pode ser removida do conjunto de particoes do escravo
-			if (partition.getEnd() == (currentIndex + 1)) {
+//			Se uma particao foi obtida, significa que ela chegou ao fim e deve ser removida
+			if (existingPartition.isPresent()) {
+				Partition partition = existingPartition.get();
 				Set<Partition> slavePartitions = slavesPartitions.get(slaveKey);
 				slavePartitions.remove(partition);
 //				Caso o conjunto de particoes do escravo esteja vazio, significa que seu papel foi cumprido
@@ -107,9 +115,6 @@ public class Attack implements Runnable {
 				if (slavePartitions.isEmpty()) {
 					slavesPartitions.remove(slaveKey);
 				}
-			} else {
-//				Com a particao nao terminada, iremos apenas atualizar seu indice de inicio
-				partition.setStart(currentIndex);
 			}
 		}
 	}

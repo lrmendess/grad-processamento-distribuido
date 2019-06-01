@@ -69,6 +69,22 @@ public class DictionaryReader implements Iterable<String> {
 		this.currentLineNumber = 0;
 	}
 	
+	public int getStart() {
+		return start;
+	}
+
+	public void setStart(int start) {
+		this.start = start;
+	}
+
+	public int getEnd() {
+		return end;
+	}
+
+	public void setEnd(int end) {
+		this.end = end;
+	}
+
 	/**
 	 * Estabelece um range de leitura entre as linhas do arquivo
 	 * 
@@ -136,6 +152,16 @@ public class DictionaryReader implements Iterable<String> {
 		}
 		
 		return linesRead;
+	}
+	
+	/**
+	 * Verifica se um dado index existe no dicionario
+	 * 
+	 * @param index
+	 * @return
+	 */
+	public boolean hasIndex(int index) {
+		return ((index >= start) && (index < end));
 	}
 	
 	/**
