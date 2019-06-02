@@ -337,14 +337,6 @@ public class MasterImpl implements Master {
 							System.err.println("I died");
 							e1.printStackTrace();
 						}
-						
-//						Vamos redistribuir as particoes restantes, incluindo a particao esse escravo que apresentou
-//						problemas durante a chamada do metodo subattack
-						List<Partition> remainingPartitions = new ArrayList<Partition>();
-						partitionsForSlaves.forEachRemaining(remainingPartitions::add);
-						remainingPartitions.add(partition);
-						
-						attack(cipherText, knownText, attackNumber, remainingPartitions);
 					}
 				}
 			}
