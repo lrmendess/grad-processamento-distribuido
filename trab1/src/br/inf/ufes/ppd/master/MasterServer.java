@@ -16,16 +16,15 @@ public class MasterServer {
 
 	public static void main(String[] args) {
 		try {
-			MasterImpl master = new MasterImpl(args[0]);
+			MasterImpl master = new MasterImpl(args[1]);
 			Master masterReference = (Master) UnicastRemoteObject.exportObject(master, 0);
 			
-			Registry registry = LocateRegistry.getRegistry("localhost");
+			Registry registry = LocateRegistry.getRegistry(args[0]);
 			registry.rebind("mestre", masterReference);
 			
 		} catch (RemoteException e) {
 //			Houve uma falha na exportacao do objeto ou na obtencao do registry
 			e.printStackTrace();
-			
 		}
 	}
 

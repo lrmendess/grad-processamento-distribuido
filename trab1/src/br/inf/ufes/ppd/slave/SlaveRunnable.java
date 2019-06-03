@@ -89,7 +89,7 @@ public class SlaveRunnable implements Runnable {
 				String decryptedStr = new String(decrypted);
 				String knownTextStr = new String(knownText);
 				
-				System.out.println(key);
+//				System.out.println(key);
 
 //				Caso a mensagem descriptografada contenha a palavra conhecida, pode-se dizer que esta chave
 //				eh uma chave candidata, portanto sera enviada para o mestre como um chute.

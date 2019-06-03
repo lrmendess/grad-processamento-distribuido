@@ -14,9 +14,9 @@ public class ClientTester {
 	
 	public static void main(String[] args) {
 		
-		String inputFolder = args[0];
+		String inputFolder = args[1];
 		
-		String outputFolder = args[1];
+		String outputFolder = args[2];
 		new File(outputFolder).mkdirs();
 		
 		int[] kbytesPerFile = new int[] {
@@ -33,7 +33,7 @@ public class ClientTester {
 		StringBuilder timeCsv = new StringBuilder();
 		
 		try {
-			Registry registry = LocateRegistry.getRegistry("localhost");
+			Registry registry = LocateRegistry.getRegistry(args[0]);
 			Master master = (Master) registry.lookup("mestre");
 
 			for (int i = 0; i < fileNames.length; i++) {
@@ -41,11 +41,11 @@ public class ClientTester {
 				
 				byte[] encryptedMessage = ByteArray.readFile(cipherFile);
 
-				long start = System.currentTimeMillis();
+				long start = System.nanoTime();
 				Guess[] guesses = master.attack(encryptedMessage, knownText.getBytes());
-				long end = System.currentTimeMillis();
+				long end = System.nanoTime();
 				
-				double difference = ((double) (end - start)) / 1000;
+				double difference = ((double) (end - start)) / 1_000_000_000;
 				
 				String outputAliceFolder = outputFolder + "/" + fileNames[i];
 				new File(outputAliceFolder).mkdirs();

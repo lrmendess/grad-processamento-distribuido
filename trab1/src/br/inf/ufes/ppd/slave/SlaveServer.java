@@ -14,15 +14,15 @@ public class SlaveServer {
 
 	public static void main(String[] args) {
 		UUID slaveKey = UUID.randomUUID();
-		String slaveName = args[0];
-		String dictionaryPath = args[1];
+		String slaveName = args[1];
+		String dictionaryPath = args[2];
 		
 		Slave slave = new SlaveImpl(slaveName, slaveKey, dictionaryPath);
 		
 		try {
 			Slave remoteSlave = (Slave) UnicastRemoteObject.exportObject(slave, 0);
 			
-			Registry registry = LocateRegistry.getRegistry("localhost");
+			Registry registry = LocateRegistry.getRegistry(args[0]);
 			
 			SlaveHeartbeatAssistant slaveAssistant = new SlaveHeartbeatAssistant(remoteSlave, slaveName, slaveKey, registry);
 			
