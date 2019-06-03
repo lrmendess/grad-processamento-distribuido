@@ -1,6 +1,5 @@
 package br.inf.ufes.ppd.slave;
 
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.util.UUID;
@@ -30,24 +29,25 @@ public class SlaveHeartbeatAssistant implements Runnable {
 	 */
 	@Override
 	public void run() {
-//		Fica aguardando o mestre estar disponivel
-		System.out.println("Looking for a Master reference...");
-		searchMaster(true);
-		System.out.println("Master reference found");
-
+		try {
+			System.out.println("Looking for a Master reference...");
+			remoteMaster = (Master) registry.lookup("mestre");
+		} catch (Exception e) {
+			System.exit(1);
+		}
+		
 		while (true) {
 			try {
 				remoteMaster.addSlave(remoteSlave, slaveName, slaveKey);
+				System.out.println("Master [ON]. Heartbeat Sent");
 				Thread.sleep(30000);
-				System.out.println("Heartbeat Sent");
 
 			} catch (RemoteException e) {
 //				Houve algo de errado com o mestre quando o escravo tentou se "re-registrar",
 //				sera feita uma tentativa de busca de uma nova referencia para ele no registry
 //				uma unica vez
-				System.out.println("Looking for a new Master reference...");
-				searchMaster(false);
-
+				System.out.println("Master [OFF]. Looking for a new Master reference...");
+				searchMaster();
 			} catch (InterruptedException e) {
 //				Exception de Thread.sleep
 				e.printStackTrace();
@@ -58,23 +58,27 @@ public class SlaveHeartbeatAssistant implements Runnable {
 	/**
 	 * Procura pelo mestre
 	 * 
-	 * @param true para buscar o mestre indeterminadamente, false para buscar apenas uma vez
+	 * @param true para buscar o mestre indeterminadamente
 	 */
-	private void searchMaster(boolean insist) {
-		do {
+	private void searchMaster() {
+		while(true) {
 			try {
 				remoteMaster = (Master) registry.lookup("mestre");
+				remoteMaster.addSlave(remoteSlave, slaveName, slaveKey);
+				System.out.println("Master reference found");
+				System.out.println("Heartbeat Sent");
+				Thread.sleep(30000);
 				break;
 
-			} catch (NotBoundException e) {
-//				O mestre nao foi encontrado
-				continue;
-
 			} catch (Exception e) {
-//				O Registry apresentou problemas, o que deve ser feito? (Duvida)
-				e.printStackTrace();
+//				O mestre nao foi encontrado, o escravo ira esperar 3 segundos para tentar procura-lo de novo
+				try {
+					Thread.sleep(3000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
 			}
-		} while (insist);
+		}
 	}
 	
 }
