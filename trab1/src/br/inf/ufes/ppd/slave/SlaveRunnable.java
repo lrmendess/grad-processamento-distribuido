@@ -89,6 +89,8 @@ public class SlaveRunnable implements Runnable {
 				String decryptedStr = new String(decrypted);
 				String knownTextStr = new String(knownText);
 				
+//				Para printar as chaves que passaram pelo processo de decriptografia, descomente
+//				a linha abaixo
 //				System.out.println(key);
 
 //				Caso a mensagem descriptografada contenha a palavra conhecida, pode-se dizer que esta chave
@@ -98,9 +100,8 @@ public class SlaveRunnable implements Runnable {
 						callbackInterface.foundGuess(slaveKey, attackNumber, dictionary.getLineNumber() - 1, guess);
 					} catch (RemoteException e) {
 //						Houve algum problema com o mestre durante o ataque.
-//						O escravo deve finalizar o subAttack e continuar tentando fazer contato com
-//						um novo mestre.
 						e.printStackTrace();
+						System.exit(1);
 					}
 				}
 
