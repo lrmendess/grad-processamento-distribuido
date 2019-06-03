@@ -32,6 +32,8 @@ public class SlaveImpl implements Slave {
 		dictionary.setRange((int) initialWordIndex, (int) finalWordIndex);
 		dictionary.rewind();
 
+		System.out.println("Received Partition: <" + dictionary.getStart() + ", " + dictionary.getEnd() + ">");
+		
 //		Inicializacao da thread que ira processar as informacoes e a passagem dos parametros necessarios
 //		para tal processamento
 		SlaveRunnable slaveRunnable = new SlaveRunnable(name, id);

@@ -14,17 +14,17 @@ public class Client {
 
 	public static void main(String[] args) {
 		try {
-			Registry registry = LocateRegistry.getRegistry("localhost");
+			Registry registry = LocateRegistry.getRegistry(args[0]);
 			Master master = (Master) registry.lookup("mestre");
 
 			byte[] encryptedMessage = null;
 
-			File cipherFile = new File(args[0]);
+			File cipherFile = new File(args[1]);
 
 //			Cria um arquivo com bytes aleatorios caso o arquivo especificado pelo cliente nao exista
 			if (!cipherFile.exists()) {
-				if (args.length == 3) {
-					encryptedMessage = ByteArray.createRandomByteArray(Integer.parseInt(args[2]));
+				if (args.length == 4) {
+					encryptedMessage = ByteArray.createRandomByteArray(Integer.parseInt(args[3]));
 				} else {
 					encryptedMessage = ByteArray.createRandomByteArray(1000, 100001);
 				}
@@ -35,7 +35,7 @@ public class Client {
 			}
 
 //			Solicita um ataque ao mestre
-			Guess[] guesses = master.attack(encryptedMessage, args[1].getBytes());
+			Guess[] guesses = master.attack(encryptedMessage, args[2].getBytes());
 
 //			Para cada chute retornado, criaremos um arquivo <chute>.msg com o conteudo descriptografado dentro
 			for (Guess guess : guesses) {

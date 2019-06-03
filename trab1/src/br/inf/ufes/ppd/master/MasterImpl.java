@@ -2,7 +2,6 @@ package br.inf.ufes.ppd.master;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,7 +52,7 @@ public class MasterImpl implements Master {
 			@Override
 			public void run() {
 				synchronized (slavesTimer) {
-					Long currentTimeInMillis = System.currentTimeMillis();
+					Long currentTimeInMillis = System.nanoTime() / 1_000_000;
 					
 //					Preenche uma lista com ids de escravos que nao respondem ha mais de 20s (checkpoint)
 					Set<UUID> candidatesToBeRemovedCheckpoint = slavesTimer.entrySet()
@@ -114,7 +113,7 @@ public class MasterImpl implements Master {
 			
 			NamedSlave namedSlave = slaves.get(slaveKey);
 			
-			Long currentTimeInMillis = System.currentTimeMillis();
+			Long currentTimeInMillis = System.nanoTime() / 1_000_000;
 			namedSlave.setHeartbeatTime(currentTimeInMillis);
 		}
 	}
@@ -176,16 +175,20 @@ public class MasterImpl implements Master {
 	public void foundGuess(UUID slaveKey, int attackNumber, long currentIndex, Guess guess)
 			throws RemoteException {
 //		Para um determinado ataque, apenas iremos adicinar um chute a sua lista de chutes
-		attacks.get(attackNumber).addGuess(guess);
-
-//		Impressao do chute recebido contendo nome do escravo, numero do ataque e indice lido
-		System.out.println("Callback received [" + slaves.get(slaveKey).getName() + ", " + attackNumber + ", "
-				+ currentIndex + "]: " + dictionaryReader.readLine((int) currentIndex));
+		synchronized (attacks) {
+			attacks.get(attackNumber).addGuess(guess);
+		}
+		
+//		Impressao do chute recebido contendo nome do escravo, numero do ataque, indice lido e a palavra
+//		do indice lido
+		System.out.println("Callback received [Name=" + slaves.get(slaveKey).getName() + ", AttackNumber="
+				+ attackNumber + ", CurrentIndex=" + currentIndex + "]: "
+				+ dictionaryReader.readLine((int) currentIndex));
 	}
 
 	@Override
 	public void checkpoint(UUID slaveKey, int attackNumber, long currentIndex) throws RemoteException {
-		Long currentTimeInMillis = System.currentTimeMillis();
+		Long currentTimeInMillis = System.nanoTime() / 1_000_000;
 //		Caso o escravo que enviou o checkpoint esteja na lista de tempo de resposta de escravos,
 //		iremos alterar o valor de sua resposta para o tempo mais atual
 		synchronized (slavesTimer) {
@@ -215,7 +218,8 @@ public class MasterImpl implements Master {
 			
 			Long responseIntervalInMillis = currentTimeInMillis - oldTimeInMillis;
 
-//			Impressao do checkpoint recebido contendo nome do escravo, numero do ataque e indice lido
+//			Impressao do checkpoint recebido contendo nome do escravo, numero do ataque, indice lido, e o tempo
+//			passo desde o ultimo checkpoint
 			System.out.println("Checkpoint received [Name=" + slaves.get(slaveKey).getName() + ", AttackNumber="
 					+ attackNumber + ", CurrentIndex=" + currentIndex + "]: " + responseIntervalInMillis + "ms");
 		}
@@ -307,6 +311,12 @@ public class MasterImpl implements Master {
 //				pela lista de escravos ate que as particoes terminem.
 				int i = 0;
 				while (partitionsForSlaves.hasNext()) {
+//					Para cada loop, verifica se ainda existem escravos
+					if (slaves.size() == 0 || partitions.isEmpty()) {
+						attack.forcedTermination();
+						return;
+					}
+					
 					Entry<UUID, NamedSlave> entry = slavesList.get(i++ % slaves.size());
 
 					UUID slaveKey = entry.getKey();
@@ -326,7 +336,7 @@ public class MasterImpl implements Master {
 						boolean isPresent = slavesTimer.containsKey(slaveKey);
 
 						if (!isPresent) {
-							slavesTimer.put(slaveKey, Calendar.getInstance().getTimeInMillis());
+							slavesTimer.put(slaveKey, System.nanoTime() / 1_000_000);
 						}
 						
 					} catch (RemoteException e) {
