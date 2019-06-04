@@ -32,6 +32,15 @@ public class Client {
 				}
 
 				ByteArray.createFile(cipherFile, encryptedMessage);
+				/**
+				 * !!!! IMPORTANTE !!!!
+				 * 
+				 * Não conseguimos identificar atraves das especificacoes se era ou
+				 * não para atacar esse vetor de bytes gerado aleatoriamente.
+				 * 
+				 * Em caso de ser necessesario ataca-lo, favor descomentar o return a seguir.
+				 */
+//				return
 			} else {
 				encryptedMessage = ByteArray.readFile(cipherFile);
 			}
