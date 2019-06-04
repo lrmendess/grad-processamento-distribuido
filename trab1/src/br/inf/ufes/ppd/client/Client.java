@@ -40,7 +40,7 @@ public class Client {
 				 * 
 				 * Em caso de ser necessesario ataca-lo, favor descomentar o return a seguir.
 				 */
-//				return
+//				return;
 			} else {
 				encryptedMessage = ByteArray.readFile(cipherFile);
 			}
