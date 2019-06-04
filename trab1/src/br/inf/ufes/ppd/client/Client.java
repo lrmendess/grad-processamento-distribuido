@@ -14,11 +14,13 @@ public class Client {
 
 	public static void main(String[] args) {
 		try {
+//			args[0] = ip do registry
 			Registry registry = LocateRegistry.getRegistry(args[0]);
 			Master master = (Master) registry.lookup("mestre");
 
 			byte[] encryptedMessage = null;
 
+//			args[1] = nome do arquivo criptografado
 			File cipherFile = new File(args[1]);
 
 //			Cria um arquivo com bytes aleatorios caso o arquivo especificado pelo cliente nao exista
@@ -34,7 +36,7 @@ public class Client {
 				encryptedMessage = ByteArray.readFile(cipherFile);
 			}
 
-//			Solicita um ataque ao mestre
+//			args[2] = palavra conhecida
 			Guess[] guesses = master.attack(encryptedMessage, args[2].getBytes());
 
 //			Para cada chute retornado, criaremos um arquivo <chute>.msg com o conteudo descriptografado dentro

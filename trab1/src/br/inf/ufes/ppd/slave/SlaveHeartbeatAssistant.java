@@ -1,5 +1,6 @@
 package br.inf.ufes.ppd.slave;
 
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.util.UUID;
@@ -29,11 +30,14 @@ public class SlaveHeartbeatAssistant implements Runnable {
 	 */
 	@Override
 	public void run() {
+//		Caso o registry esteja "sujo", a ordem e precisao desses prints podem acabar sendo prejudicadas
 		try {
-			System.out.println("Looking for a Master reference...");
 			remoteMaster = (Master) registry.lookup("mestre");
-		} catch (Exception e) {
-			System.exit(1);
+		} catch (RemoteException e) {
+			System.err.println("Permission denied or Registry not found");
+			System.exit(0);
+		} catch (NotBoundException e) {
+//			O mestre nao foi encontrado, logo abaixo tratamos isso
 		}
 		
 		while (true) {
@@ -42,11 +46,11 @@ public class SlaveHeartbeatAssistant implements Runnable {
 				System.out.println("Master [ON]. Heartbeat Sent");
 				Thread.sleep(30000);
 
-			} catch (RemoteException e) {
+			} catch (RemoteException | NullPointerException e) {
 //				Houve algo de errado com o mestre quando o escravo tentou se "re-registrar",
 //				sera feita uma tentativa de busca de uma nova referencia para ele no registry
 //				uma unica vez
-				System.out.println("Master [OFF]. Looking for a new Master reference...");
+				System.out.println("Master [OFF]. Looking for a Master reference...");
 				searchMaster();
 			} catch (InterruptedException e) {
 //				Exception de Thread.sleep
@@ -65,8 +69,7 @@ public class SlaveHeartbeatAssistant implements Runnable {
 			try {
 				remoteMaster = (Master) registry.lookup("mestre");
 				remoteMaster.addSlave(remoteSlave, slaveName, slaveKey);
-				System.out.println("Master reference found");
-				System.out.println("Heartbeat Sent");
+				System.out.println("Master [ON]. Heartbeat Sent");
 				Thread.sleep(30000);
 				break;
 

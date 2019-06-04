@@ -99,9 +99,9 @@ public class SlaveRunnable implements Runnable {
 					try {
 						callbackInterface.foundGuess(slaveKey, attackNumber, dictionary.getLineNumber() - 1, guess);
 					} catch (RemoteException e) {
-//						Houve algum problema com o mestre durante o ataque.
-						e.printStackTrace();
-						System.exit(1);
+//						Houve algum problema com o mestre durante o ataque, logo iremos finalizar o processo.
+//						Nas especificacoes nao ha exigencias quanto ao tratamento desse problema
+						System.err.println("The master fell during the attack (SlaveRunnable)");
 					}
 				}
 
@@ -125,6 +125,8 @@ public class SlaveRunnable implements Runnable {
 				+ dictionary.getEnd() + ">");
 		
 		try {
+//			Houve algum problema com o mestre durante o ataque, logo iremos finalizar o processo.
+//			Nas especificacoes nao ha exigencias quanto ao tratamento desse problema
 			callbackInterface.checkpoint(slaveKey, attackNumber, dictionary.getLineNumber());
 		} catch (RemoteException e) {
 			System.err.println("The master fell during the attack (SlaveRunnable)");

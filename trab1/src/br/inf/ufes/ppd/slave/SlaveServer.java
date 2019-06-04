@@ -22,10 +22,12 @@ public class SlaveServer {
 		try {
 			Slave remoteSlave = (Slave) UnicastRemoteObject.exportObject(slave, 0);
 			
+//			args[0] = ip do registry
 			Registry registry = LocateRegistry.getRegistry(args[0]);
-			
-			SlaveHeartbeatAssistant slaveAssistant = new SlaveHeartbeatAssistant(remoteSlave, slaveName, slaveKey, registry);
-			
+
+			SlaveHeartbeatAssistant slaveAssistant = new SlaveHeartbeatAssistant(remoteSlave, slaveName, slaveKey,
+					registry);
+
 			Thread slaveMonitorThread = new Thread(slaveAssistant);
 			slaveMonitorThread.start();
 			

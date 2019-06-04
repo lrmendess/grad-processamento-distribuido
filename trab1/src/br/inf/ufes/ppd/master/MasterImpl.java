@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import br.inf.ufes.ppd.Guess;
 import br.inf.ufes.ppd.Master;
 import br.inf.ufes.ppd.Slave;
-import br.inf.ufes.ppd.slave.NamedSlave;
 import br.inf.ufes.ppd.utils.DictionaryReader;
 import br.inf.ufes.ppd.utils.Partition;
 
@@ -45,7 +44,8 @@ public class MasterImpl implements Master {
 		this.attacks = Collections.synchronizedMap(new HashMap<>());
 		this.slavesTimer = Collections.synchronizedMap(new HashMap<>());
 		
-//		Thread para procurar por escravos caidos e redistribuir suas particoes
+//		Thread para procurar por escravos caidos e redistribuir suas particoes, atribuimos um valor alpha
+//		de 2 segundos para cada verificacao na intencao de nao punir um escravo por atrasos tao facilmente
 		Timer timer = new Timer();
 		TimerTask timerTask = new TimerTask() {
 			
@@ -181,7 +181,7 @@ public class MasterImpl implements Master {
 		
 //		Impressao do chute recebido contendo nome do escravo, numero do ataque, indice lido e a palavra
 //		do indice lido
-		System.out.println("Callback received [Name=" + slaves.get(slaveKey).getName() + ", AttackNumber="
+		System.out.println("Guess received [Name=" + slaves.get(slaveKey).getName() + ", AttackNumber="
 				+ attackNumber + ", CurrentIndex=" + currentIndex + "]: "
 				+ dictionaryReader.readLine((int) currentIndex));
 	}
@@ -233,6 +233,8 @@ public class MasterImpl implements Master {
 //		O numero de ataque eh gerado automaticamente pela classe Attack, logo basta recupera-lo
 		Integer attackNumber = attack.getAttackNumber();
 
+		System.out.println("The attack [" + attackNumber + "] started");
+		
 //		Adicionamos esse ataque ao mapa de ataques que estao sendo gerenciados pelo mestre
 		synchronized (attacks) {
 			attacks.put(attackNumber, attack);				
@@ -241,6 +243,7 @@ public class MasterImpl implements Master {
 		synchronized (slaves) {
 //			Sem escravos, sem ataque
 			if (slaves.size() == 0) {
+				System.out.println("The attack [" + attackNumber + "] ended with error");
 				return failure();
 			}
 			
@@ -268,6 +271,9 @@ public class MasterImpl implements Master {
 //			adicionamos uma mensagem de erro
 			if (attack.wasForcedToTerminate()) {
 				attack.guesses().add(failure()[0]);
+				System.out.println("The attack [" + attackNumber + "] ended with error");
+			} else {
+				System.out.println("The attack [" + attackNumber + "] ended without error");
 			}
 		}
 		
@@ -289,7 +295,6 @@ public class MasterImpl implements Master {
 	 * @param partitions
 	 */
 	private void attack(byte[] cipherText, byte[] knownText, int attackNumber, List<Partition> partitions) {
-		
 		synchronized (slavesTimer) {
 			synchronized (slaves) {
 				Attack attack = attacks.get(attackNumber);
@@ -311,7 +316,7 @@ public class MasterImpl implements Master {
 //				pela lista de escravos ate que as particoes terminem.
 				int i = 0;
 				while (partitionsForSlaves.hasNext()) {
-//					Para cada loop, verifica se ainda existem escravos
+//					Idem ao primeiro comentario do metodo
 					if (slaves.size() == 0 || partitions.isEmpty()) {
 						attack.forcedTermination();
 						return;

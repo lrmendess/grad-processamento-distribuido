@@ -53,7 +53,7 @@ public class Partition {
 	public List<Partition> shatter(int numberOfPartitions) {
 		List<Partition> partitions = new ArrayList<>();
 		
-		if (numberOfPartitions == 0) {
+		if (numberOfPartitions <= 0) {
 			return partitions;
 		}
 

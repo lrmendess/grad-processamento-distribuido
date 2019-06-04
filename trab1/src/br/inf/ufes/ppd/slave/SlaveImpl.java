@@ -28,6 +28,7 @@ public class SlaveImpl implements Slave {
 	public void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
 			int attackNumber, SlaveManager callbackInterface) throws RemoteException {
 
+//		Limita o range do dicionario que o escravo ira trabalhar
 		DictionaryReader dictionary = new DictionaryReader(baseDictionary);
 		dictionary.setRange((int) initialWordIndex, (int) finalWordIndex);
 		dictionary.rewind();

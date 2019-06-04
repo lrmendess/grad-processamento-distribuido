@@ -1,4 +1,4 @@
-package br.inf.ufes.ppd.slave;
+package br.inf.ufes.ppd.master;
 
 import java.util.UUID;
 
