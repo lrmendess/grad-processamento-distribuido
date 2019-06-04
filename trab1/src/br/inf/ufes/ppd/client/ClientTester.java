@@ -14,8 +14,10 @@ public class ClientTester {
 	
 	public static void main(String[] args) {
 		
+//		Diretorio onde os arquivos de testes (Alice) estao, o padrao eh ../test/Alice
 		String inputFolder = args[1];
 		
+//		Diretorio para armazenar os resultados
 		String outputFolder = args[2];
 		new File(outputFolder).mkdirs();
 		
@@ -33,6 +35,7 @@ public class ClientTester {
 		StringBuilder timeCsv = new StringBuilder();
 		
 		try {
+//			args[0] = ip do registry
 			Registry registry = LocateRegistry.getRegistry(args[0]);
 			Master master = (Master) registry.lookup("mestre");
 
