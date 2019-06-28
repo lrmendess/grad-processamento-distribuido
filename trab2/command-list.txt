@@ -1,0 +1,2 @@
+javac -d bin -cp .:lib/gf-client.jar src/br/ufes/inf/ppd/*.java src/br/inf/ufes/ppd/client/*.java src/br/ufes/inf/ppd/master/*.java src/br/ufes/inf/ppd/slave/*.java
+java -cp .:./bin:/{GLASSFISH_DIR}/lib/gf-client.jar {PACKAGE_CLASS}
