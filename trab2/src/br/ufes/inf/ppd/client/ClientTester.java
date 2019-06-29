@@ -53,7 +53,7 @@ public class ClientTester {
 				String outputAliceFolder = outputFolder + "/" + fileNames[i];
 				new File(outputAliceFolder).mkdirs();
 				
-//				Para cada chute retornado, criaremos um arquivo <chute>.msg com o conteudo descriptografado dentro
+//				Para cada chute retornado, criaremos um arquivo <chute>.msg com o conteudo decriptografado dentro
 				for (Guess guess : guesses) {
 					File guessFile = new File(outputAliceFolder + "/" + guess.getKey() + ".msg");
 					ByteArray.createFile(guessFile, guess.getMessage());

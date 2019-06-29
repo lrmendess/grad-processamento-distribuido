@@ -1,10 +1,17 @@
 package br.ufes.inf.ppd.slave;
 
+import java.util.Base64;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
+import javax.jms.TextMessage;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.sun.messaging.Queue;
 
@@ -82,7 +89,24 @@ public class SlaveImpl implements Slave, MessageListener {
 
 	@Override
 	public void onMessage(Message message) {
-		// TODO Auto-generated method stub
+		if (message instanceof TextMessage) {
+			try {
+				JSONObject obj = new JSONObject(((TextMessage) message).getText());
+				
+				int initialWordIndex = Integer.parseInt(obj.getString("initialWordIndex"));
+				int finalWordIndex = Integer.parseInt(obj.getString("finalWordIndex"));
+				byte[] knownText = obj.getString("knownText").getBytes();
+				byte[] cipherText = Base64.getDecoder().decode(obj.getString("cipherText"));
+				
+				int attackNumber = Integer.parseInt(((TextMessage) message).getStringProperty("attackNumber"));
+				
+				startSubAttack(cipherText, knownText, initialWordIndex, finalWordIndex, attackNumber);			
+			} catch(JSONException e) {
+				e.printStackTrace();				
+			} catch(JMSException e) {
+				e.printStackTrace();
+			}
+		}
 		
 	}
 

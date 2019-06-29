@@ -15,9 +15,9 @@ public interface Slave extends Remote, MessageListener {
 	 * 
 	 * @param ciphertext       mensagem critografada
 	 * @param knowntext        trecho conhecido da mensagem decriptografada
-	 * @param initialwordindex índice inicial do trecho do dicionário a ser
+	 * @param initialwordindex indice inicial do trecho do dicionario a ser
 	 *                         	considerado no sub-ataque.
-	 * @param finalwordindex   índice final do trecho do dicionário a ser
+	 * @param finalwordindex   indice final do trecho do dicionario a ser
 	 *                         	considerado no sub-ataque.
 	 * @param attackNumber     	chave que identifica o ataque
 	 *

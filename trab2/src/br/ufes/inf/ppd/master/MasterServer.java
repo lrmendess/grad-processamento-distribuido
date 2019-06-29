@@ -56,11 +56,9 @@ public class MasterServer {
 			
 			Registry registry = LocateRegistry.getRegistry(args[0]);
 			registry.rebind("mestre", masterReference);
-
 		} catch (RemoteException e) {
 			System.err.println("Permission denied or Registry not found");
-			System.exit(0);
-			
+			System.exit(0);			
 		} catch (JMSException e) {
 			e.printStackTrace();
 		}

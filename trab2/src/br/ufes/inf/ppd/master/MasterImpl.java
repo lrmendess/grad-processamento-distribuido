@@ -1,6 +1,7 @@
 package br.ufes.inf.ppd.master;
 
 import java.rmi.RemoteException;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,8 +31,9 @@ public class MasterImpl implements Master {
 	private Map<Integer, Attack> attacks;
 //	Fila de sub-ataques a serem depositados pelo mestre
 	private Queue subAttacksQueue;
-	
+//	Contexto utilizado para instanciar mensagens a serem enviadas pelo produtor
 	private JMSContext context;
+//	Produtor utilizado para enviar mensagens na fila de sub-ataques
 	private JMSProducer producer;
 
 	/**
@@ -43,7 +45,6 @@ public class MasterImpl implements Master {
 	 */
 
 	public MasterImpl(String dictionaryPath, int numberOfPartitions, Queue subAttacksQueue, JMSContext context) {
-
 		DictionaryReader dictionaryReader = new DictionaryReader(dictionaryPath);
 		
 		this.dictionaryPartitions = dictionaryReader.toPartitions(numberOfPartitions);
@@ -76,7 +77,7 @@ public class MasterImpl implements Master {
 				obj.put("initialWordIndex", new Integer(part.getStart()));
 				obj.put("finalWordIndex", new Integer(part.getEnd()));
 				obj.put("knownText", new String(knownText));
-				obj.put("cipherText", new String(cipherText));
+				obj.put("cipherText", new String(Base64.getEncoder().encode(cipherText)));
 
 				String jsonText = obj.toString();
 		    
@@ -84,11 +85,9 @@ public class MasterImpl implements Master {
 				message.setText(jsonText);
 				message.setStringProperty("attackNumber", Integer.toString(attackNumber));
 			
-				producer.send(subAttacksQueue, message);
-				
+				producer.send(subAttacksQueue, message);				
 			} catch(JSONException e) {
-				e.printStackTrace();
-				
+				e.printStackTrace();				
 			} catch(JMSException e) {
 				e.printStackTrace();
 			}

@@ -40,7 +40,7 @@ public class Client {
 
 			Guess[] guesses = master.attack(encryptedMessage, args[2].getBytes());
 
-//			Para cada chute retornado, criaremos um arquivo <chute>.msg com o conteudo descriptografado dentro
+//			Para cada chute retornado, criaremos um arquivo <chute>.msg com o conteudo decriptografado dentro
 			for (Guess guess : guesses) {
 				File file = new File(guess.getKey() + ".msg");
 
