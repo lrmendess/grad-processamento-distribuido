@@ -1,7 +1,6 @@
 package br.ufes.inf.ppd.master;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -18,14 +17,14 @@ public class Attack implements Runnable {
 	
 	public Attack(byte[] cipherText, byte[] knownText) {
 		this.attackNumber = Sequence.nextValue();
-		this.guesses = Collections.synchronizedList(new ArrayList<Guess>());
+		this.guesses = new ArrayList<Guess>();
 	}
 	
 	public void setPartitions(Set<Partition> partitions) {
 		this.partitions = partitions;
 	}
 	
-	public void removePartition(Partition partition) {
+	public synchronized void removePartition(Partition partition) {
 		partitions.remove(partition);
 	}
 	

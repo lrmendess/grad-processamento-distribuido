@@ -236,7 +236,7 @@ public class DictionaryReader implements Iterable<String> {
 	 * @return lista de particoes
 	 */
 	public Set<Partition> toPartitions(int numberOfPartitions) {
-		Set<Partition> partitions = new HashSet<>();
+		Set<Partition> partitions = new HashSet<Partition>();
 
 		int partitionLength = countLines() / numberOfPartitions;
 		int partitionLeftovers = countLines() % numberOfPartitions;
@@ -256,6 +256,30 @@ public class DictionaryReader implements Iterable<String> {
 			partitions.add(new Partition(min, max));
 		}
 
+		rewind();
+		
+		return partitions;
+	}
+	
+	/**
+	 * Fragmenta um dicionario em N particoes de tamanho numberOfWords cada
+	 * 
+	 * @param numberOfWords
+	 * @return
+	 */
+	public Set<Partition> chunk(int numberOfWords) {
+		Set<Partition> partitions = new HashSet<Partition>();
+		
+		while (ready()) {
+			int min = getLineNumber();
+			seek(numberOfWords);
+			int max = getLineNumber();
+			
+			partitions.add(new Partition(min, max));
+		}
+		
+		rewind();
+		
 		return partitions;
 	}
 	

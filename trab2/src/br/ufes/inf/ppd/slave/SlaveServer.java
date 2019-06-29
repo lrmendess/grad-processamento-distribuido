@@ -10,6 +10,7 @@ import javax.jms.JMSException;
 import javax.jms.MessageListener;
 
 import com.sun.messaging.ConnectionConfiguration;
+import com.sun.messaging.ConnectionFactory;
 import com.sun.messaging.Queue;
 
 public class SlaveServer {
@@ -18,7 +19,7 @@ public class SlaveServer {
 		String dictionaryPath = args[0];
 		String host = (args.length < 2) ? "127.0.0.1" : args[1];
 		
-		System.out.print("Digite um nome para o escravo: ");
+		System.out.print("Enter a name for the slave: ");
 		Scanner scanner = new Scanner(System.in);
 		String slaveName = scanner.nextLine();
 		scanner.close();
@@ -27,7 +28,7 @@ public class SlaveServer {
 			Logger.getLogger("").setLevel(Level.INFO);
 	
 			System.out.println("Obtaining connection factory...");
-			com.sun.messaging.ConnectionFactory connectionFactory = new com.sun.messaging.ConnectionFactory();
+			ConnectionFactory connectionFactory = new ConnectionFactory();
 			connectionFactory.setProperty(ConnectionConfiguration.imqAddressList, host + ":7676");
 			System.out.println("Obtained connection factory.");
 			
@@ -41,7 +42,6 @@ public class SlaveServer {
 
 			MessageListener listener = new SlaveImpl(slaveName, dictionaryPath, guessQueue, context);
 			consumer.setMessageListener(listener);
-			
 		} catch (JMSException e) {
 			e.printStackTrace();
 		}

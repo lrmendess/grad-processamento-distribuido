@@ -47,10 +47,10 @@ public class MasterImpl implements Master, MessageListener {
 	 * @param subAttacksQueue 
 	 */
 
-	public MasterImpl(String dictionaryPath, int numberOfPartitions, Queue subAttacksQueue, JMSContext context) {
+	public MasterImpl(String dictionaryPath, int numberOfWords, Queue subAttacksQueue, JMSContext context) {
 		DictionaryReader dictionaryReader = new DictionaryReader(dictionaryPath);
 		
-		this.dictionaryPartitions = dictionaryReader.toPartitions(numberOfPartitions);
+		this.dictionaryPartitions = dictionaryReader.chunk(numberOfWords);
 		this.attacks = Collections.synchronizedMap(new HashMap<Integer, Attack>());
 		this.subAttacksQueue = subAttacksQueue;
 		this.context = context;
@@ -69,13 +69,14 @@ public class MasterImpl implements Master, MessageListener {
 		
 //		Adicionamos esse ataque ao mapa de ataques que estao sendo gerenciados pelo mestre
 		Set<Partition> dictionaryPartitionsCopy = new HashSet<Partition>(dictionaryPartitions);
+		
 		synchronized (attacks) {
 			attacks.put(attackNumber, attack);	
 			attack.setPartitions(dictionaryPartitionsCopy);
 		}
 		
 		try {
-			for(Partition partition : dictionaryPartitionsCopy) {
+			for(Partition partition : dictionaryPartitions) {
 				JSONObject obj = new JSONObject();
 				obj.put("initialWordIndex", partition.getStart());
 				obj.put("finalWordIndex", partition.getEnd());
