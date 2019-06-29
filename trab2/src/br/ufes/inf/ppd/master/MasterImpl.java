@@ -71,22 +71,22 @@ public class MasterImpl implements Master, MessageListener {
 			attack.setPartitions(dictionaryPartitions);
 		}
 		
-		for(Partition part : dictionaryPartitions) {
+		for(Partition partition : dictionaryPartitions) {
 			try {
 				JSONObject obj = new JSONObject();
 			
-				obj.put("initialWordIndex", new Integer(part.getStart()));
-				obj.put("finalWordIndex", new Integer(part.getEnd()));
+				obj.put("initialWordIndex", partition.getStart());
+				obj.put("finalWordIndex", partition.getEnd());
 				obj.put("knownText", new String(knownText));
 				obj.put("cipherText", new String(Base64.getEncoder().encode(cipherText)));
 
 				String jsonText = obj.toString();
 		    
-				TextMessage message = context.createTextMessage(); 
+				TextMessage message = context.createTextMessage();
+				message.setIntProperty("attackNumber", attackNumber);
 				message.setText(jsonText);
-				message.setStringProperty("attackNumber", Integer.toString(attackNumber));
-			
-				producer.send(subAttacksQueue, message);				
+				
+				producer.send(subAttacksQueue, message);
 			} catch(JSONException e) {
 				e.printStackTrace();				
 			} catch(JMSException e) {

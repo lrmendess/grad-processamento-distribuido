@@ -51,8 +51,9 @@ public class Attack implements Runnable {
 	 */
 	@Override
 	public void run() {
+		System.out.println(partitions);
 		try {
-			while (partitions.isEmpty()) {
+			while (!partitions.isEmpty()) {
 				synchronized (this) {
 					this.wait();	
 				}

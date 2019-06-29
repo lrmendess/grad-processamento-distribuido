@@ -91,15 +91,18 @@ public class SlaveImpl implements Slave, MessageListener {
 	@Override
 	public void onMessage(Message message) {
 		if (message instanceof TextMessage) {
+			TextMessage textMessage = (TextMessage) message;
+			
 			try {
-				JSONObject obj = new JSONObject(((TextMessage) message).getText());
+//				System.out.println(textMessage.getText());
+				JSONObject obj = new JSONObject(textMessage.getText());
 				
-				int initialWordIndex = Integer.parseInt(obj.getString("initialWordIndex"));
-				int finalWordIndex = Integer.parseInt(obj.getString("finalWordIndex"));
+				int initialWordIndex = obj.getInt("initialWordIndex");
+				int finalWordIndex = obj.getInt("finalWordIndex");
 				byte[] knownText = obj.getString("knownText").getBytes();
 				byte[] cipherText = Base64.getDecoder().decode(obj.getString("cipherText"));
 				
-				int attackNumber = Integer.parseInt(((TextMessage) message).getStringProperty("attackNumber"));
+				int attackNumber = textMessage.getIntProperty("attackNumber");
 				
 				startSubAttack(cipherText, knownText, initialWordIndex, finalWordIndex, attackNumber);			
 			} catch(JSONException e) {

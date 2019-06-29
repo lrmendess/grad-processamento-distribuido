@@ -18,6 +18,7 @@ public class SlaveServer {
 		String dictionaryPath = args[0];
 		String host = (args.length < 2) ? "127.0.0.1" : args[1];
 		
+		System.out.print("Digite um nome para o escravo: ");
 		Scanner scanner = new Scanner(System.in);
 		String slaveName = scanner.nextLine();
 		scanner.close();
