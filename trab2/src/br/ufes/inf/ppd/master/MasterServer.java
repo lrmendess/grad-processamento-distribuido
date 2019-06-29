@@ -31,13 +31,7 @@ public class MasterServer {
 //			args[1] = numero de particoes do dicionario
 //			args[2] = ip do registry
 
-			MasterImpl master = new MasterImpl(args[0], Integer.parseInt(args[1]));
-			String host = (args.length < 3) ? "127.0.0.1" : args[1];
-			
-			Master masterReference = (Master) UnicastRemoteObject.exportObject(master, 0);
-			
-			Registry registry = LocateRegistry.getRegistry(args[0]);
-			registry.rebind("mestre", masterReference);
+			String host = (args.length < 3) ? "127.0.0.1" : args[2];
 
 			Logger.getLogger("").setLevel(Level.INFO);
 			
@@ -49,15 +43,20 @@ public class MasterServer {
 
 			System.out.println("Obtaining queue...");
 			Queue guessesQueue = new Queue("GuessesQueue");
-//			TODO Deve ser passada uma fila de subAttacks como parametro para o mestre enviar particoes para
-//			serem atacadas por escravos que estejam no sistema
+			Queue subAttacksQueue = new Queue("SubAttacksQueue");
 			System.out.println("Obtained queue.");
 
 			JMSContext context = connectionFactory.createContext();
 			JMSConsumer consumer = context.createConsumer(guessesQueue);
 			
-			MessageListener listener = master;
-			consumer.setMessageListener(listener);
+			MasterImpl master = new MasterImpl(args[0], Integer.parseInt(args[1]), subAttacksQueue);
+			
+			consumer.setMessageListener(master);
+			
+			Master masterReference = (Master) UnicastRemoteObject.exportObject(master, 0);
+			
+			Registry registry = LocateRegistry.getRegistry(args[0]);
+			registry.rebind("mestre", masterReference);
 
 		} catch (RemoteException e) {
 			System.err.println("Permission denied or Registry not found");

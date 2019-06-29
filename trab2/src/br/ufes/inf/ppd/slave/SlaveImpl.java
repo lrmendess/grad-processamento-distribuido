@@ -6,6 +6,8 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 
+import com.sun.messaging.Queue;
+
 import br.ufes.inf.ppd.Guess;
 import br.ufes.inf.ppd.Slave;
 import br.ufes.inf.ppd.utils.DictionaryReader;
@@ -15,10 +17,12 @@ public class SlaveImpl implements Slave, MessageListener {
 	@SuppressWarnings("unused")
 	private String name;
 	private DictionaryReader dictionary;
+	private Queue guessQueue;
 
-	public SlaveImpl(String name, String dictionaryPath) {
+	public SlaveImpl(String name, String dictionaryPath, Queue guessQueue) {
 		this.name = name;
 		this.dictionary = new DictionaryReader(dictionaryPath);
+		this.guessQueue = guessQueue;
 	}
 
 	/**
@@ -61,7 +65,6 @@ public class SlaveImpl implements Slave, MessageListener {
 					System.out.println(key);
 //					TODO salvar o chute numa lista para ser retornada assim que a particao for concluida
 				}
-
 			} catch (BadPaddingException e) {
 //				Chave errada, ignorar
 			} catch (Exception e) {
@@ -78,7 +81,7 @@ public class SlaveImpl implements Slave, MessageListener {
 	}
 
 	@Override
-	public void onMessage(Message arg0) {
+	public void onMessage(Message message) {
 		// TODO Auto-generated method stub
 		
 	}

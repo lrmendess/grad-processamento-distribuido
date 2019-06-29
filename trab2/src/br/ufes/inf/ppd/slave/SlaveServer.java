@@ -32,13 +32,13 @@ public class SlaveServer {
 			
 			System.out.println("Obtaining queue...");
 			Queue subAttacksQueue = new Queue("SubAttacksQueue");
-//			TODO Deve ser passada uma fila de chutes como parametro para o escravo retornar os chutes
+			Queue guessQueue = new Queue("GuessesQueue");
 			System.out.println("Obtained queue.");
 			
 			JMSContext context = connectionFactory.createContext();
 			JMSConsumer consumer = context.createConsumer(subAttacksQueue);
 
-			MessageListener listener = new SlaveImpl(slaveName, dictionaryPath);
+			MessageListener listener = new SlaveImpl(slaveName, dictionaryPath, guessQueue);
 			consumer.setMessageListener(listener);
 			
 		} catch (JMSException e) {

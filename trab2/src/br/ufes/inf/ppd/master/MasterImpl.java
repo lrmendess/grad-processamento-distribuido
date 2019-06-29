@@ -8,6 +8,8 @@ import java.util.Set;
 
 import javax.jms.Message;
 
+import com.sun.messaging.Queue;
+
 import br.ufes.inf.ppd.Guess;
 import br.ufes.inf.ppd.Master;
 import br.ufes.inf.ppd.utils.DictionaryReader;
@@ -19,18 +21,22 @@ public class MasterImpl implements Master {
 	private Set<Partition> dictionaryPartitions;
 //	Mapa que indica quais particoes um escravo esta responsavel em um ataque
 	private Map<Integer, Attack> attacks;
+//	Fila de sub-ataques a serem depositados pelo mestre
+	private Queue subAttacksQueue;
 
 	/**
 	 * Construtor do mestre, aqui tambem inicializamos uma thread para verificar quais escravos
 	 * do sistema ainda estao vivos. Essa thread eh disparada a cada 5 segundos.
 	 * 
 	 * @param dictionaryPath
+	 * @param subAttacksQueue 
 	 */
-	public MasterImpl(String dictionaryPath, int numberOfPartitions) {
+	public MasterImpl(String dictionaryPath, int numberOfPartitions, Queue subAttacksQueue) {
 		DictionaryReader dictionaryReader = new DictionaryReader(dictionaryPath);
 		
 		this.dictionaryPartitions = dictionaryReader.toPartitions(numberOfPartitions);
 		this.attacks = Collections.synchronizedMap(new HashMap<Integer, Attack>());
+		this.subAttacksQueue = subAttacksQueue;
 	}
 	
 	@Override
