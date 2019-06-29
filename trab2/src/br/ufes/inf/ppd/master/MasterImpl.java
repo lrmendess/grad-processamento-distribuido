@@ -6,7 +6,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import javax.jms.JMSProducer;
+import javax.jms.JMSContext;
+import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.TextMessage;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.sun.messaging.Queue;
 
 import br.ufes.inf.ppd.Guess;
 import br.ufes.inf.ppd.Master;
@@ -19,18 +28,27 @@ public class MasterImpl implements Master {
 	private Set<Partition> dictionaryPartitions;
 //	Mapa que indica quais particoes um escravo esta responsavel em um ataque
 	private Map<Integer, Attack> attacks;
+//	Fila de sub-ataques a serem depositados pelo mestre
+	private Queue subAttacksQueue;
+	
+	private JMSContext context;
+	private JMSProducer producer;
 
 	/**
 	 * Construtor do mestre, aqui tambem inicializamos uma thread para verificar quais escravos
 	 * do sistema ainda estao vivos. Essa thread eh disparada a cada 5 segundos.
 	 * 
 	 * @param dictionaryPath
+	 * @param subAttacksQueue 
 	 */
-	public MasterImpl(String dictionaryPath, int numberOfPartitions) {
+	public MasterImpl(String dictionaryPath, int numberOfPartitions, Queue subAttacksQueue, JMSContext context) {
 		DictionaryReader dictionaryReader = new DictionaryReader(dictionaryPath);
 		
 		this.dictionaryPartitions = dictionaryReader.toPartitions(numberOfPartitions);
 		this.attacks = Collections.synchronizedMap(new HashMap<Integer, Attack>());
+		this.subAttacksQueue = subAttacksQueue;
+		this.context = context;
+		this.producer = context.createProducer();
 	}
 	
 	@Override
@@ -49,12 +67,30 @@ public class MasterImpl implements Master {
 			attack.setPartitions(dictionaryPartitions);
 		}
 		
-		/*
-		 * TODO coloca a particao e o numero do ataque na fila de subAttacks para
-		 * que algum escravo a colete, processe toda a particao e retorne os chutes
-		 * atraves do metodo onMessage
-		 * 
-		 */
+		for(Partition part : dictionaryPartitions) {
+			try {
+				JSONObject obj = new JSONObject();
+			
+				obj.put("initialWordIndex", new Integer(part.getStart()));
+				obj.put("finalWordIndex", new Integer(part.getEnd()));
+				obj.put("knownText", new String(knownText));
+				obj.put("cipherText", new String(cipherText));
+
+				String jsonText = obj.toString();
+		    
+				TextMessage message = context.createTextMessage(); 
+				message.setText(jsonText);
+				message.setStringProperty("attackNumber", Integer.toString(attackNumber));
+			
+				producer.send(subAttacksQueue, message);
+				
+			} catch(JSONException e) {
+				e.printStackTrace();
+				
+			} catch(JMSException e) {
+				e.printStackTrace();
+			}
+		}
 		
 //		Inicializacao da thread que serve para segurar o mestre ate que o ataque termine
 		Thread attackThread = new Thread(attack);
