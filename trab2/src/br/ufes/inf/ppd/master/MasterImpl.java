@@ -41,7 +41,9 @@ public class MasterImpl implements Master {
 	 * @param dictionaryPath
 	 * @param subAttacksQueue 
 	 */
+
 	public MasterImpl(String dictionaryPath, int numberOfPartitions, Queue subAttacksQueue, JMSContext context) {
+
 		DictionaryReader dictionaryReader = new DictionaryReader(dictionaryPath);
 		
 		this.dictionaryPartitions = dictionaryReader.toPartitions(numberOfPartitions);
