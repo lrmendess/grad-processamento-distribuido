@@ -26,10 +26,10 @@ public class SlaveServer {
 		try {
 			Logger.getLogger("").setLevel(Level.INFO);
 	
-			System.out.println("obtaining connection factory...");
+			System.out.println("Obtaining connection factory...");
 			com.sun.messaging.ConnectionFactory connectionFactory = new com.sun.messaging.ConnectionFactory();
 			connectionFactory.setProperty(ConnectionConfiguration.imqAddressList, host + ":7676");
-			System.out.println("obtained connection factory.");
+			System.out.println("Obtained connection factory.");
 			
 			System.out.println("Obtaining queue...");
 			Queue subAttacksQueue = new Queue("SubAttacksQueue");
@@ -39,7 +39,7 @@ public class SlaveServer {
 			JMSContext context = connectionFactory.createContext();
 			JMSConsumer consumer = context.createConsumer(subAttacksQueue);
 
-			MessageListener listener = new SlaveImpl(slaveName, dictionaryPath, guessQueue);
+			MessageListener listener = new SlaveImpl(slaveName, dictionaryPath, guessQueue, context);
 			consumer.setMessageListener(listener);
 			
 		} catch (JMSException e) {

@@ -37,8 +37,8 @@ public class Attack implements Runnable {
 		return attackNumber;
 	}
 
-	public synchronized void addGuesses(List<Guess> guess) {
-		guesses.addAll(guess);
+	public synchronized void addGuess(Guess guess) {
+		guesses.add(guess);
 	}
 
 	public List<Guess> getGuesses() {
@@ -51,7 +51,6 @@ public class Attack implements Runnable {
 	 */
 	@Override
 	public void run() {
-		System.out.println(partitions);
 		try {
 			while (!partitions.isEmpty()) {
 				synchronized (this) {

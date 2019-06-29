@@ -5,11 +5,14 @@ import java.util.Base64;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import javax.jms.JMSContext;
 import javax.jms.JMSException;
+import javax.jms.JMSProducer;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -21,16 +24,23 @@ import br.ufes.inf.ppd.utils.DictionaryReader;
 
 public class SlaveImpl implements Slave, MessageListener {
 
-	@SuppressWarnings("unused")
+//	Nome dado ao escravo quando instanciado
 	private String name;
+//	Dicionario original
 	private DictionaryReader dictionary;
-	@SuppressWarnings("unused")
+//	Fila de chutes para enviar informacoes ao mestre
 	private Queue guessQueue;
+//	Contexto utilizado para instanciar mensagens a serem enviadas pelo produtor
+	private JMSContext context;
+//	Produtor utilizado para enviar mensagens na fila de sub-ataques
+	private JMSProducer producer;
 
-	public SlaveImpl(String name, String dictionaryPath, Queue guessQueue) {
+	public SlaveImpl(String name, String dictionaryPath, Queue guessQueue, JMSContext context) {
 		this.name = name;
 		this.dictionary = new DictionaryReader(dictionaryPath);
 		this.guessQueue = guessQueue;
+		this.context = context;
+		this.producer = context.createProducer();
 	}
 
 	/**
@@ -41,12 +51,14 @@ public class SlaveImpl implements Slave, MessageListener {
 	@Override
 	public void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
 			int attackNumber) {
+		JSONArray guesses = new JSONArray();
 
 //		Limita o range do dicionario que o escravo ira trabalhar
 		dictionary.setRange((int) initialWordIndex, (int) finalWordIndex);
 		dictionary.rewind();
 
-		System.out.println("Received Partition: <" + dictionary.getStart() + ", " + dictionary.getEnd() + ">");
+		System.out.println("Attack [" + attackNumber + "]: Received Partition: <" + dictionary.getStart() + ", "
+				+ dictionary.getEnd() + ">");
 
 //		Enquanto houver alguma coisa para ler no dicionario...
 		while (dictionary.ready()) {
@@ -61,7 +73,6 @@ public class SlaveImpl implements Slave, MessageListener {
 //				Caso nao caia no catch BadPaddingException, essa chave eh uma chave candidata
 				byte[] decrypted = cipher.doFinal(cipherText);
 
-				@SuppressWarnings("unused")
 				Guess guess = new Guess(key, decrypted);
 
 				String decryptedStr = new String(decrypted);
@@ -70,8 +81,7 @@ public class SlaveImpl implements Slave, MessageListener {
 //				Caso a mensagem descriptografada contenha a palavra conhecida, pode-se dizer que esta chave
 //				eh uma chave candidata, portanto sera enviada para o mestre como um chute.
 				if (decryptedStr.contains(knownTextStr)) {
-					System.out.println(key);
-//					TODO salvar o chute numa lista para ser retornada assim que a particao for concluida
+					guesses.put(guess.toJson());
 				}
 			} catch (BadPaddingException e) {
 //				Chave errada, ignorar
@@ -80,12 +90,26 @@ public class SlaveImpl implements Slave, MessageListener {
 			}
 		}
 
-		System.out.println("Partition has been terminated <" + dictionary.getStart() + ", "
-				+ dictionary.getEnd() + ">");
+		System.out.println("Attack ["+ attackNumber + "]: Partition <" + dictionary.getStart() + ", "
+				+ dictionary.getEnd() + "> has been terminated");
 		
-//		TODO enviar os chutes e o numero do ataque para a lista de chutes
-//		TODO limpar a lista local de chutes
-		
+		try {
+			JSONObject obj = new JSONObject();
+			obj.put("slaveName", name);
+			obj.put("initialWordIndex", dictionary.getStart());
+			obj.put("finalWordIndex", dictionary.getEnd());
+			obj.put("guesses", guesses);
+	
+			String jsonText = obj.toString();
+			
+			TextMessage message = context.createTextMessage();
+			message.setIntProperty("attackNumber", attackNumber);
+			message.setText(jsonText);
+			
+			producer.send(guessQueue, message);
+		} catch (JMSException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -94,7 +118,6 @@ public class SlaveImpl implements Slave, MessageListener {
 			TextMessage textMessage = (TextMessage) message;
 			
 			try {
-//				System.out.println(textMessage.getText());
 				JSONObject obj = new JSONObject(textMessage.getText());
 				
 				int initialWordIndex = obj.getInt("initialWordIndex");

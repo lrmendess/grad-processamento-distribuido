@@ -1,4 +1,11 @@
 asadmin start-domain
 asadmin add-resources glassfish-queues.xml
-java -cp "bin;/Users/lucas/Downloads/glassfish5/glassfish/lib/gf-client.jar;lib/java-json.jar" br.ufes.inf.ppd.master.MasterServer test/dictionary.txt 3
+
 javac -d bin -cp "/Users/lucas/Downloads/glassfish5/glassfish/lib/gf-client.jar;lib/java-json.jar" src/br/ufes/inf/ppd/*.java src/br/ufes/inf/ppd/client/*.java src/br/ufes/inf/ppd/master/*.java src/br/ufes/inf/ppd/slave/*.java src/br/ufes/inf/ppd/utils/*.java
+
+java -cp "bin;/Users/lucas/Downloads/glassfish5/glassfish/lib/gf-client.jar;lib/java-json.jar" br.ufes.inf.ppd.master.MasterServer test/dictionary.txt 3
+java -cp "bin;/Users/lucas/Downloads/glassfish5/glassfish/lib/gf-client.jar;lib/java-json.jar" br.ufes.inf.ppd.slave.SlaveServer test/dictionary.txt
+java -cp "bin;/Users/lucas/Downloads/glassfish5/glassfish/lib/gf-client.jar;lib/java-json.jar" br.ufes.inf.ppd.client.Client {IP} {CIPHER} {KEYWORD}
+
+asadmin flush-jmsdest --desttype queue GuessesQueue
+asadmin flush-jmsdest --desttype queue SubAttacksQueue

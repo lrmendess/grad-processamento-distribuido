@@ -28,11 +28,12 @@ public class Client {
 
 //			Cria um arquivo com bytes aleatorios caso o arquivo especificado pelo cliente nao exista
 			if (!cipherFile.exists()) {
-				if (args.length == 4)
+				if (args.length == 4) {
 					encryptedMessage = ByteArray.createRandomByteArray(Integer.parseInt(args[3]));
-				else
+				} else {
 					encryptedMessage = ByteArray.createRandomByteArray(1000, 100001);
-
+				}
+				
 				ByteArray.createFile(cipherFile, encryptedMessage);
 			} else {
 				encryptedMessage = ByteArray.readFile(cipherFile);
@@ -44,8 +45,9 @@ public class Client {
 			for (Guess guess : guesses) {
 				File file = new File(guess.getKey() + ".msg");
 
-				if (!file.exists())
+				if (!file.exists()) {
 					ByteArray.createFile(file, guess.getMessage());
+				}
 			}
 		} catch (IOException e) {
 //			Houve uma falha na leitura do arquivo

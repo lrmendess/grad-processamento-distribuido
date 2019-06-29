@@ -4,6 +4,7 @@ import java.rmi.RemoteException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,6 +15,7 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -63,18 +65,18 @@ public class MasterImpl implements Master, MessageListener {
 //		O numero de ataque eh gerado automaticamente pela classe Attack, logo basta recupera-lo
 		Integer attackNumber = attack.getAttackNumber();
 
-		System.out.println("The attack [" + attackNumber + "] started");
+		System.out.println("Attack [" + attackNumber + "]: Started");
 		
 //		Adicionamos esse ataque ao mapa de ataques que estao sendo gerenciados pelo mestre
+		Set<Partition> dictionaryPartitionsCopy = new HashSet<Partition>(dictionaryPartitions);
 		synchronized (attacks) {
 			attacks.put(attackNumber, attack);	
-			attack.setPartitions(dictionaryPartitions);
+			attack.setPartitions(dictionaryPartitionsCopy);
 		}
 		
-		for(Partition partition : dictionaryPartitions) {
-			try {
+		try {
+			for(Partition partition : dictionaryPartitionsCopy) {
 				JSONObject obj = new JSONObject();
-			
 				obj.put("initialWordIndex", partition.getStart());
 				obj.put("finalWordIndex", partition.getEnd());
 				obj.put("knownText", new String(knownText));
@@ -87,11 +89,11 @@ public class MasterImpl implements Master, MessageListener {
 				message.setText(jsonText);
 				
 				producer.send(subAttacksQueue, message);
-			} catch(JSONException e) {
-				e.printStackTrace();				
-			} catch(JMSException e) {
-				e.printStackTrace();
 			}
+		} catch(JSONException e) {
+			e.printStackTrace();				
+		} catch(JMSException e) {
+			e.printStackTrace();
 		}
 		
 //		Inicializacao da thread que serve para segurar o mestre ate que o ataque termine
@@ -108,7 +110,7 @@ public class MasterImpl implements Master, MessageListener {
 //		Terminado um ataque, podemos remover ele do mapa de ataques
 		synchronized (attacks) {
 			attacks.remove(attackNumber);
-			System.out.println("The attack [" + attackNumber + "] ended");
+			System.out.println("Attack [" + attackNumber + "]: Ended");
 		}
 		
 //		Converte a lista de guess para um array de guess
@@ -121,8 +123,36 @@ public class MasterImpl implements Master, MessageListener {
 
 	@Override
 	public void onMessage(Message message) {
-		// TODO Auto-generated method stub
-		
+		if (message instanceof TextMessage) {
+			TextMessage textMessage = (TextMessage) message;
+			
+			try {
+				int attackNumber = textMessage.getIntProperty("attackNumber");
+				Attack attack = attacks.get(attackNumber);
+				
+				JSONObject obj = new JSONObject(textMessage.getText());
+				
+				JSONArray guesses = obj.getJSONArray("guesses");
+				for (int i = 0; i < guesses.length(); i++) {
+					Guess guess = new Guess(guesses.getJSONObject(i));
+					attack.addGuess(guess);
+				}
+				
+				int start = obj.getInt("initialWordIndex");
+				int end = obj.getInt("finalWordIndex");
+				Partition partition = new Partition(start, end);
+				
+				String slaveName = obj.getString("slaveName");
+				
+				System.out.println("Attack [" + attackNumber + "]: Partition <" + start + ", " + end
+						+ "> has been terminated by " + slaveName);
+				
+				attack.removePartition(partition);
+				attack.notifyAttack();
+			} catch (JMSException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 }
