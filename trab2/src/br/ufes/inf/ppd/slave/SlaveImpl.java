@@ -24,6 +24,7 @@ public class SlaveImpl implements Slave, MessageListener {
 	@SuppressWarnings("unused")
 	private String name;
 	private DictionaryReader dictionary;
+	@SuppressWarnings("unused")
 	private Queue guessQueue;
 
 	public SlaveImpl(String name, String dictionaryPath, Queue guessQueue) {

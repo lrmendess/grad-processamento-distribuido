@@ -5,8 +5,6 @@ package br.ufes.inf.ppd;
  */
 import java.rmi.Remote;
 
-import javax.jms.MessageListener;
-
-public interface Master extends Remote, Attacker, MessageListener {
+public interface Master extends Remote, Attacker {
 	// O mestre eh um Attacker
 }

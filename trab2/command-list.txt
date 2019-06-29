@@ -1,4 +1,4 @@
 asadmin start-domain
 asadmin add-resources glassfish-queues.xml
-javac -d bin -cp .:lib/gf-client.jar src/br/ufes/inf/ppd/*.java src/br/inf/ufes/ppd/client/*.java src/br/ufes/inf/ppd/master/*.java src/br/ufes/inf/ppd/slave/*.java
-java -cp .:./bin:/{GLASSFISH_DIR}/lib/gf-client.jar {PACKAGE_CLASS}
+java -cp "bin;/Users/lucas/Downloads/glassfish5/glassfish/lib/gf-client.jar;lib/java-json.jar" br.ufes.inf.ppd.master.MasterServer test/dictionary.txt 3
+javac -d bin -cp "/Users/lucas/Downloads/glassfish5/glassfish/lib/gf-client.jar;lib/java-json.jar" src/br/ufes/inf/ppd/*.java src/br/ufes/inf/ppd/client/*.java src/br/ufes/inf/ppd/master/*.java src/br/ufes/inf/ppd/slave/*.java src/br/ufes/inf/ppd/utils/*.java

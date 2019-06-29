@@ -6,9 +6,7 @@ package br.ufes.inf.ppd;
 
 import java.rmi.Remote;
 
-import javax.jms.MessageListener;
-
-public interface Slave extends Remote, MessageListener {
+public interface Slave extends Remote {
 
 	/**
 	 * Solicita a um escravo que inicie sua parte do ataque.

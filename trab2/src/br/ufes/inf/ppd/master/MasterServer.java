@@ -47,14 +47,14 @@ public class MasterServer {
 
 			JMSContext context = connectionFactory.createContext();
 			JMSConsumer consumer = context.createConsumer(guessesQueue);
-			
+
 			MasterImpl master = new MasterImpl(args[0], Integer.parseInt(args[1]), subAttacksQueue, context);
 			
 			consumer.setMessageListener(master);
 			
 			Master masterReference = (Master) UnicastRemoteObject.exportObject(master, 0);
 			
-			Registry registry = LocateRegistry.getRegistry(args[0]);
+			Registry registry = LocateRegistry.getRegistry(host);
 			registry.rebind("mestre", masterReference);
 		} catch (RemoteException e) {
 			System.err.println("Permission denied or Registry not found");

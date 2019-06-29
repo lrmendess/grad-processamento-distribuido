@@ -11,6 +11,7 @@ import javax.jms.JMSProducer;
 import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
 import org.json.JSONException;
@@ -23,7 +24,7 @@ import br.ufes.inf.ppd.Master;
 import br.ufes.inf.ppd.utils.DictionaryReader;
 import br.ufes.inf.ppd.utils.Partition;
 
-public class MasterImpl implements Master {
+public class MasterImpl implements Master, MessageListener {
 
 //	Diretorio base
 	private Set<Partition> dictionaryPartitions;
