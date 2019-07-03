@@ -7,11 +7,13 @@ import java.util.logging.Logger;
 import javax.jms.JMSConsumer;
 import javax.jms.JMSContext;
 import javax.jms.JMSException;
-import javax.jms.MessageListener;
+import javax.jms.Message;
 
 import com.sun.messaging.ConnectionConfiguration;
 import com.sun.messaging.ConnectionFactory;
 import com.sun.messaging.Queue;
+
+import br.ufes.inf.ppd.Slave;
 
 public class SlaveServer {
 
@@ -40,9 +42,16 @@ public class SlaveServer {
 			JMSContext context = connectionFactory.createContext();
 			JMSConsumer consumer = context.createConsumer(subAttacksQueue);
 
-			MessageListener listener = new SlaveImpl(slaveName, dictionaryPath, guessQueue, context);
-			consumer.setMessageListener(listener);
+			Slave slave = new SlaveImpl(slaveName, dictionaryPath, guessQueue, context);
+			
+			while (true) {
+				Message message = consumer.receive();
+				slave.sentMessage(message);
+				Thread.sleep(125);
+			}
 		} catch (JMSException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}

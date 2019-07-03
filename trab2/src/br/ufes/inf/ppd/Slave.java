@@ -6,6 +6,8 @@ package br.ufes.inf.ppd;
 
 import java.rmi.Remote;
 
+import javax.jms.Message;
+
 public interface Slave extends Remote {
 
 	/**
@@ -23,5 +25,7 @@ public interface Slave extends Remote {
 	 */
 	public void startSubAttack(byte[] cipherText, byte[] knownText, long initialWordIndex, long finalWordIndex,
 			int attackNumber);
+	
+	public void sentMessage(Message message);
 
 }

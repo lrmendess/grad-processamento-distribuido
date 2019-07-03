@@ -9,7 +9,6 @@ import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.JMSProducer;
 import javax.jms.Message;
-import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
 import org.json.JSONArray;
@@ -22,7 +21,7 @@ import br.ufes.inf.ppd.Guess;
 import br.ufes.inf.ppd.Slave;
 import br.ufes.inf.ppd.utils.DictionaryReader;
 
-public class SlaveImpl implements Slave, MessageListener {
+public class SlaveImpl implements Slave {
 
 //	Nome dado ao escravo quando instanciado
 	private String name;
@@ -112,8 +111,7 @@ public class SlaveImpl implements Slave, MessageListener {
 		}
 	}
 
-	@Override
-	public void onMessage(Message message) {
+	public void sentMessage(Message message) {
 		if (message instanceof TextMessage) {
 			TextMessage textMessage = (TextMessage) message;
 			
