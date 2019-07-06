@@ -22,13 +22,13 @@ public class ClientTester {
 		new File(outputFolder).mkdirs();
 		
 		int[] kbytesPerFile = new int[] {
-			1, 2, 5, 10, 20, 30, 40, 50, 60, 70
+			1, 5, 10, 20, 40, 60, 80
 		};
 		
-		String[] fileNames = new String[]{
-			"alice1", "alice2", "alice5", "alice10",
-			"alice20", "alice30", "alice40", "alice50",
-			"alice60", "alice70"
+		String[] fileNames = new String[] {
+			"alice1", "alice5", "alice10",
+			"alice20", "alice40", "alice60",
+			"alice80"
 		};
 		
 		String knownText = "Alice";
